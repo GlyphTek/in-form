@@ -356,19 +356,21 @@ function getBarString(fillCount) {
     return filled + empty;
 }
 
-if(tifaBtn) {
+if (tifaBtn) {
     tifaBtn.addEventListener("click", (e) => {
         e.preventDefault();
-        if(isGenerating) return;
+        if (isGenerating) return;
         isGenerating = true;
 
-        // Retrieve current config dynamically on tap
+        // Retrieve current config
         const currentConfig = JSON.parse(localStorage.getItem("inform_config")) || { aiPartner: "AI" };
         const activePartner = currentConfig.aiPartner;
 
-        tifaSubtitle.textContent = `RAKE & ${activePartner} FUSION Complete`;
-        Object.values(checkElements).forEach(el => el.classList.remove("visible"));
+        // --- STATE 1 → Generating ---
+        tifaSubtitle.textContent = "RAKE Signals generating...";
 
+        // Reset checkmarks and bars
+        Object.values(checkElements).forEach(el => el.classList.remove("visible"));
         Object.values(signalElements).forEach(el => {
             el.textContent = "░░░░░░░░░░";
         });
@@ -395,21 +397,29 @@ if(tifaBtn) {
                 if (currentStep >= maxSteps) {
                     clearInterval(fillInterval);
 
+                    // Populate cards
                     contentElements.relevant.innerHTML = `
-                        <p><strong>${activePartner} Analysis: AI Infrastructure</strong><br><a href="#" target="_blank" style="color: var(--secondary);">Open Source Link</a></p>
+                        <p><strong>${activePartner} Analysis: AI Infrastructure</strong><br>
+                        <a href="#" target="_blank" style="color: var(--secondary);">Open Source Link</a></p>
                     `;
                     contentElements.attention.innerHTML = `
-                        <p><strong>Heavy Rain Forecast (MetService)</strong><br><a href="#" target="_blank" style="color: var(--secondary);">View Alert</a></p>
+                        <p><strong>Heavy Rain Forecast (MetService)</strong><br>
+                        <a href="#" target="_blank" style="color: var(--secondary);">View Alert</a></p>
                     `;
                     contentElements.knowing.innerHTML = `
-                        <p><strong>Quantum Computing Breakthrough</strong><br><a href="#" target="_blank" style="color: var(--secondary);">PhysicsWorld Link</a></p>
+                        <p><strong>Quantum Computing Breakthrough</strong><br>
+                        <a href="#" target="_blank" style="color: var(--secondary);">PhysicsWorld Link</a></p>
                     `;
                     contentElements.experience.innerHTML = `
-                        <p><strong>Technology Meetup & Live Session</strong><br><a href="#" target="_blank" style="color: var(--secondary);">Explore Event</a></p>
+                        <p><strong>Technology Meetup & Live Session</strong><br>
+                        <a href="#" target="_blank" style="color: var(--secondary);">Explore Event</a></p>
                     `;
 
+                    // Show checkmarks
                     Object.values(checkElements).forEach(el => el.classList.add("visible"));
-                    tifaSubtitle.textContent = `RAKE Signals Formed by ${activePartner}`;
+
+                    // --- STATE 2 → Complete ---
+                    tifaSubtitle.textContent = "RAKE Generation complete";
 
                     isGenerating = false;
                 }
