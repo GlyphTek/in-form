@@ -425,6 +425,26 @@ details[open].card{
     box-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
 }
 
+.return-setup-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px dashed var(--secondary);
+    color: var(--secondary);
+    padding: 8px;
+    margin-top: 12px;
+    font-family: inherit;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.return-setup-btn:hover {
+    background: var(--secondary);
+    color: #000;
+}
+
 /* FOOTER */
 
 footer{

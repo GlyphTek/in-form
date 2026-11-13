@@ -876,3 +876,28 @@ if (tifaBtn) {
     });
 }
 
+const returnToSetupBtn = document.getElementById("return-to-setup-btn");
+
+if (returnToSetupBtn) {
+    returnToSetupBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Hide app screen, show setup screen
+        appScreen.style.opacity = "0";
+        setTimeout(() => {
+            appScreen.style.display = "none";
+            setupScreen.style.display = "flex";
+            setupScreen.style.opacity = "1";
+
+            // Load existing config into arrays so user can edit them
+            const savedConfig = JSON.parse(localStorage.getItem("inform_config"));
+            if (savedConfig) {
+                userSources = savedConfig.sources || [];
+                userPlatforms = savedConfig.platforms || [];
+                renderSources();
+                renderPlatforms();
+            }
+        }, 500);
+    });
+}
