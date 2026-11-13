@@ -319,19 +319,24 @@ setInterval(rotateAppWord, 3500);
 
 const tifaBtn = document.getElementById("tifa-btn");
 const tifaSubtitle = document.getElementById("tifa-subtitle");
-
 /* ==========================
    AI PARTNER & RAKE FUSION
 ========================== */
 
 const taglineEl = document.querySelector(".tagline");
 
-// Load and display saved AI partner on load with FUSION branding
+// Load and display saved AI partner on load
 const savedConfig = JSON.parse(localStorage.getItem("inform_config"));
 const activeAiPartner = (savedConfig && savedConfig.aiPartner) ? savedConfig.aiPartner : "AI";
 
 if (taglineEl) {
     taglineEl.textContent = `RAKE & ${activeAiPartner} - FUSION`;
+}
+
+// Load and display saved AI partner on load if available
+const savedConfig = JSON.parse(localStorage.getItem("inform_config"));
+if (savedConfig && savedConfig.aiPartner && taglineEl) {
+    taglineEl.textContent = `Formed with ${savedConfig.aiPartner} • Powered by RAKE`;
 }
 
 const signalElements = {
@@ -424,4 +429,4 @@ if(tifaBtn) {
 
         }, 1500);
     });
-}}
+}
