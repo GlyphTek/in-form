@@ -319,19 +319,7 @@ setInterval(rotateAppWord, 3500);
 
 const tifaBtn = document.getElementById("tifa-btn");
 const tifaSubtitle = document.getElementById("tifa-subtitle");
-/* ==========================
-   AI PARTNER & RAKE FUSION
-========================== */
-
-const taglineEl = document.querySelector(".tagline");
-
-// Load and display saved AI partner on load
-const savedConfig = JSON.parse(localStorage.getItem("inform_config"));
-const activeAiPartner = (savedConfig && savedConfig.aiPartner) ? savedConfig.aiPartner : "AI";
-
-if (taglineEl) {
-    taglineEl.textContent = `RAKE & ${activeAiPartner} - FUSION`;
-}
+const taglineEl = document.querySelector(".tagline"); // Selects the tagline under the logo
 
 // Load and display saved AI partner on load if available
 const savedConfig = JSON.parse(localStorage.getItem("inform_config"));
