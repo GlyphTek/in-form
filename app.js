@@ -314,18 +314,99 @@ function rotateAppWord() {
 setInterval(rotateAppWord, 3500);
 
 /* ==========================
-   TIFA SIGNAL GENERATION
+   SOURCE MANAGEMENT
+========================== */
+
+let userSources = [];
+
+const sourceInput = document.getElementById("source-input");
+const addSourceBtn = document.getElementById("add-source-btn");
+const sourcesList = document.getElementById("sources-list");
+
+function renderSources() {
+    if (!sourcesList) return;
+    sourcesList.innerHTML = "";
+
+    userSources.forEach((source, index) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+            <span>${source}</span>
+            <button data-index="${index}">×</button>
+        `;
+        sourcesList.appendChild(li);
+    });
+
+    // Attach remove listeners
+    sourcesList.querySelectorAll("button").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const index = parseInt(btn.dataset.index);
+            userSources.splice(index, 1);
+            renderSources();
+        });
+    });
+}
+
+if (addSourceBtn) {
+    addSourceBtn.addEventListener("click", () => {
+        const value = sourceInput.value.trim();
+        if (value && !userSources.includes(value)) {
+            userSources.push(value);
+            sourceInput.value = "";
+            renderSources();
+        }
+    });
+
+    // Also allow Enter key
+    sourceInput?.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+            addSourceBtn.click();
+        }
+    });
+}
+
+/* ==========================
+   START BUTTON – SAVE FULL CONFIG
+========================== */
+
+if (startBtn) {
+    startBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+
+        const aiSelect = document.getElementById("ai-select");
+        const platformCheckboxes = document.querySelectorAll(".platforms input[type='checkbox']");
+
+        const userConfig = {
+            aiPartner: aiSelect ? aiSelect.value || "Grok" : "Grok",
+            sources: [...userSources],
+            platforms: Array.from(platformCheckboxes)
+                .filter(box => box.checked)
+                .map(box => box.parentElement.textContent.trim())
+        };
+
+        localStorage.setItem("inform_config", JSON.stringify(userConfig));
+
+        // Transition
+        setupScreen.style.opacity = "0";
+        setTimeout(() => {
+            setupScreen.style.display = "none";
+            appScreen.style.display = "block";
+            appScreen.style.opacity = "1";
+
+            // Update tagline
+            const taglineEl = document.querySelector(".tagline");
+            if (taglineEl) {
+                taglineEl.textContent = `Formed with ${userConfig.aiPartner} • Powered by RAKE`;
+            }
+        }, 500);
+    });
+}
+
+/* ==========================
+   TIFA SIGNAL GENERATION (AI LAYER)
 ========================== */
 
 const tifaBtn = document.getElementById("tifa-btn");
 const tifaSubtitle = document.getElementById("tifa-subtitle");
-const taglineEl = document.querySelector(".tagline"); // Selects the tagline under the logo
-
-// Load and display saved AI partner on load if available
-const savedConfig = JSON.parse(localStorage.getItem("inform_config"));
-if (savedConfig && savedConfig.aiPartner && taglineEl) {
-    taglineEl.textContent = `Formed with ${savedConfig.aiPartner} • Powered by RAKE`;
-}
 
 const signalElements = {
     relevant: document.getElementById("signal-relevant"),
@@ -356,33 +437,94 @@ function getBarString(fillCount) {
     return filled + empty;
 }
 
+/**
+ * TIFA Engine + AI Layer
+ * This is the core. Later you can replace the mock with real API calls.
+ */
+async function generateTIFASignals(config) {
+    const { aiPartner, sources, platforms } = config;
+
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 1800));
+
+    // --- MOCK AI LAYER (varies by selected AI) ---
+    // This is where real AI logic will eventually live
+
+    const baseSignals = {
+        relevant: {
+            title: "AI Infrastructure Movements",
+            linkText: "Open Source Discussion",
+            link: "#"
+        },
+        attention: {
+            title: "Weather Alert – Heavy Rain",
+            linkText: "View MetService Alert",
+            link: "#"
+        },
+        knowing: {
+            title: "Quantum Computing Progress",
+            linkText: "PhysicsWorld Article",
+            link: "#"
+        },
+        experience: {
+            title: "Live Tech Session Tonight",
+            linkText: "Explore Event",
+            link: "#"
+        }
+    };
+
+    // Slight personality shift based on AI
+    if (aiPartner === "Grok") {
+        baseSignals.relevant.title = "xAI / Open Source Signal";
+        baseSignals.knowing.title = "Truth-seeking Edge Cases";
+    } else if (aiPartner === "Claude") {
+        baseSignals.relevant.title = "Careful Systems Thinking";
+        baseSignals.knowing.title = "Nuanced Technical Insight";
+    } else if (aiPartner === "Gemini") {
+        baseSignals.relevant.title = "Multimodal Pattern Detected";
+        baseSignals.knowing.title = "Cross-domain Connection";
+    } else if (aiPartner === "ChatGPT") {
+        baseSignals.relevant.title = "Structured Opportunity Map";
+        baseSignals.knowing.title = "Clear Technical Breakdown";
+    }
+
+    // If user added real sources, surface them
+    if (sources && sources.length > 0) {
+        baseSignals.relevant.title = `Signal from ${sources[0]}`;
+        if (sources[1]) {
+            baseSignals.knowing.title = `Insight from ${sources[1]}`;
+        }
+    }
+
+    return baseSignals;
+}
+
 if (tifaBtn) {
-    tifaBtn.addEventListener("click", (e) => {
+    tifaBtn.addEventListener("click", async (e) => {
         e.preventDefault();
         if (isGenerating) return;
         isGenerating = true;
 
-        // Retrieve current config
-        const currentConfig = JSON.parse(localStorage.getItem("inform_config")) || { aiPartner: "AI" };
-        const activePartner = currentConfig.aiPartner;
+        const config = JSON.parse(localStorage.getItem("inform_config")) || {
+            aiPartner: "Grok",
+            sources: [],
+            platforms: []
+        };
 
-        // --- STATE 1 → Generating ---
+        // State: Generating
         tifaSubtitle.textContent = "RAKE Signals generating...";
 
-        // Reset checkmarks and bars
+        // Reset UI
         Object.values(checkElements).forEach(el => el.classList.remove("visible"));
         Object.values(signalElements).forEach(el => {
             el.textContent = "░░░░░░░░░░";
         });
 
-        setTimeout(() => {
-            const targets = {
-                relevant: 7,
-                attention: 5,
-                knowing: 8,
-                experience: 6
-            };
+        try {
+            const signals = await generateTIFASignals(config);
 
+            // Animate bars
+            const targets = { relevant: 8, attention: 6, knowing: 9, experience: 7 };
             let currentStep = 0;
             const maxSteps = 10;
 
@@ -399,32 +541,34 @@ if (tifaBtn) {
 
                     // Populate cards
                     contentElements.relevant.innerHTML = `
-                        <p><strong>${activePartner} Analysis: AI Infrastructure</strong><br>
-                        <a href="#" target="_blank" style="color: var(--secondary);">Open Source Link</a></p>
+                        <p><strong>${signals.relevant.title}</strong><br>
+                        <a href="${signals.relevant.link}" target="_blank" style="color: var(--secondary);">${signals.relevant.linkText}</a></p>
                     `;
                     contentElements.attention.innerHTML = `
-                        <p><strong>Heavy Rain Forecast (MetService)</strong><br>
-                        <a href="#" target="_blank" style="color: var(--secondary);">View Alert</a></p>
+                        <p><strong>${signals.attention.title}</strong><br>
+                        <a href="${signals.attention.link}" target="_blank" style="color: var(--secondary);">${signals.attention.linkText}</a></p>
                     `;
                     contentElements.knowing.innerHTML = `
-                        <p><strong>Quantum Computing Breakthrough</strong><br>
-                        <a href="#" target="_blank" style="color: var(--secondary);">PhysicsWorld Link</a></p>
+                        <p><strong>${signals.knowing.title}</strong><br>
+                        <a href="${signals.knowing.link}" target="_blank" style="color: var(--secondary);">${signals.knowing.linkText}</a></p>
                     `;
                     contentElements.experience.innerHTML = `
-                        <p><strong>Technology Meetup & Live Session</strong><br>
-                        <a href="#" target="_blank" style="color: var(--secondary);">Explore Event</a></p>
+                        <p><strong>${signals.experience.title}</strong><br>
+                        <a href="${signals.experience.link}" target="_blank" style="color: var(--secondary);">${signals.experience.linkText}</a></p>
                     `;
 
-                    // Show checkmarks
                     Object.values(checkElements).forEach(el => el.classList.add("visible"));
 
-                    // --- STATE 2 → Complete ---
+                    // State: Complete
                     tifaSubtitle.textContent = "RAKE Generation complete";
-
                     isGenerating = false;
                 }
-            }, 100);
+            }, 90);
 
-        }, 1500);
+        } catch (err) {
+            console.error(err);
+            tifaSubtitle.textContent = "Generation failed";
+            isGenerating = false;
+        }
     });
 }
