@@ -490,13 +490,13 @@ footer{
 
     width:100%;
 
-    padding:8px 12px;
+    padding:6px 10px;
 
     background:rgba(255,255,255,.03);
 
     border:1px solid rgba(0,255,136,.08);
 
-    border-radius:10px;
+    border-radius:8px;
 
     color:var(--text);
 
@@ -504,7 +504,7 @@ footer{
 
     outline:none;
 
-    font-size: 0.75rem;
+    font-size: 0.70rem;
 }
 
 .setup-container input:focus,
@@ -555,7 +555,7 @@ footer{
 .platforms{
     display:grid;
     grid-template-columns:1fr 1fr;
-    gap:12px;
+    gap:6px;
     margin-top:4px;
 }
 
@@ -565,17 +565,19 @@ footer{
     align-items:center;
     gap:8px;
 
-    padding:8px 10px;
+    padding:6px 8px;
 
     background:rgba(255,255,255,.03);
 
     border:1px solid rgba(0,255,136,.08);
 
-    border-radius:8px;
+    border-radius:6px;
 
     color:var(--text);
 
     cursor:pointer;
+
+    font-size: 0.70rem;
 }
 
 .platforms input[type="checkbox"]{
@@ -590,7 +592,7 @@ footer{
 
 button[type="button"]{
 
-    padding:8px 12px;
+    padding:6px 10px;
 
     border-radius:12px;
 
