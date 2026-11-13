@@ -469,17 +469,22 @@ function getBarString(fillCount) {
  * Sites = primary material
  * Platforms = light surface influence
  */
+/**
+ * Local Resonance Engine
+ * Sites = primary material
+ * Platforms = light surface influence
+ */
 async function generateTIFASignals(config) {
     const { sources = [], platforms = [] } = config;
 
+    // Simulate local signal processing delay
     await new Promise(resolve => setTimeout(resolve, 1400));
 
-    function getThemesFromSources(sources) {
+    // 1. Extract themes from user sources
+    function getThemesFromSources(srcs) {
         const themes = new Set();
-
-        sources.forEach(site => {
+        srcs.forEach(site => {
             const lower = site.toLowerCase();
-
             if (lower.includes("physics") || lower.includes("quantum") || lower.includes("arxiv")) {
                 themes.add("physics");
             }
@@ -493,98 +498,32 @@ async function generateTIFASignals(config) {
                 themes.add("news");
             }
         });
-
         if (themes.size === 0) themes.add("general");
         return Array.from(themes);
     }
 
     const activeThemes = getThemesFromSources(sources);
 
+    // 2. Candidate signal pool
     const candidates = [
-        {
-            title: "Quantum research edge",
-            linkText: "Technical overview",
-            category: "knowing",
-            themes: ["physics"],
-            score: 0
-        },
-        {
-            title: "New physics signal detected",
-            linkText: "Research brief",
-            category: "relevant",
-            themes: ["physics"],
-            score: 0
-        },
-        {
-            title: "Weather conditions shifting",
-            linkText: "Current forecast",
-            category: "attention",
-            themes: ["weather"],
-            score: 0
-        },
-        {
-            title: "Environmental alert forming",
-            linkText: "View details",
-            category: "attention",
-            themes: ["weather"],
-            score: 0
-        },
-        {
-            title: "Open source infrastructure movement",
-            linkText: "Explore discussion",
-            category: "relevant",
-            themes: ["tech"],
-            score: 0
-        },
-        {
-            title: "AI systems pattern emerging",
-            linkText: "Technical note",
-            category: "knowing",
-            themes: ["tech"],
-            score: 0
-        },
-        {
-            title: "Live technical session",
-            linkText: "Join or follow",
-            category: "experience",
-            themes: ["tech", "general"],
-            score: 0
-        },
-        {
-            title: "Orientation signal forming",
-            linkText: "Open context",
-            category: "relevant",
-            themes: ["general"],
-            score: 0
-        },
-        {
-            title: "Attention required on current field",
-            linkText: "View signal",
-            category: "attention",
-            themes: ["general"],
-            score: 0
-        },
-        {
-            title: "Knowledge edge available",
-            linkText: "Expand understanding",
-            category: "knowing",
-            themes: ["general"],
-            score: 0
-        },
-        {
-            title: "Experience window opening",
-            linkText: "Explore possibility",
-            category: "experience",
-            themes: ["general"],
-            score: 0
-        }
+        { title: "Quantum research edge", linkText: "Technical overview", category: "knowing", themes: ["physics"], score: 0 },
+        { title: "New physics signal detected", linkText: "Research brief", category: "relevant", themes: ["physics"], score: 0 },
+        { title: "Weather conditions shifting", linkText: "Current forecast", category: "attention", themes: ["weather"], score: 0 },
+        { title: "Environmental alert forming", linkText: "View details", category: "attention", themes: ["weather"], score: 0 },
+        { title: "Open source infrastructure movement", linkText: "Explore discussion", category: "relevant", themes: ["tech"], score: 0 },
+        { title: "AI systems pattern emerging", linkText: "Technical note", category: "knowing", themes: ["tech"], score: 0 },
+        { title: "Live technical session", linkText: "Join or follow", category: "experience", themes: ["tech", "general"], score: 0 },
+        { title: "Orientation signal forming", linkText: "Open context", category: "relevant", themes: ["general"], score: 0 },
+        { title: "Attention required on current field", linkText: "View signal", category: "attention", themes: ["general"], score: 0 },
+        { title: "Knowledge edge available", linkText: "Expand understanding", category: "knowing", themes: ["general"], score: 0 },
+        { title: "Experience window opening", linkText: "Explore possibility", category: "experience", themes: ["general"], score: 0 }
     ];
 
+    // 3. Score candidates based on themes and platforms
     candidates.forEach(c => {
         const themeMatch = c.themes.some(t => activeThemes.includes(t));
         if (themeMatch) c.score += 8;
 
-        // Dynamic platform keyword scoring
         platforms.forEach(p => {
             const pLower = p.toLowerCase();
             if (pLower.includes("x") || pLower.includes("twitter")) {
@@ -603,7 +542,7 @@ async function generateTIFASignals(config) {
         }
     });
 
-    // 2. Pick the best signals based on those scores
+    // 4. Pick the best signals
     function pickBest(category) {
         const pool = candidates
             .filter(c => c.category === category)
@@ -621,7 +560,17 @@ async function generateTIFASignals(config) {
     const knowing = pickBest("knowing");
     const experience = pickBest("experience");
 
-    // 3. Return the finalized object
+    // 5. Personalize with actual user source names if available
+    if (sources[0]) {
+        relevant.title = `Signal from ${sources[0]}`;
+        relevant.linkText = `Inspect ${sources[0]} stream`;
+    }
+    if (sources[1]) {
+        knowing.title = `Insight from ${sources[1]}`;
+        knowing.linkText = "Read research context";
+    }
+
+    // 6. Return finalized object
     return {
         relevant: { title: relevant.title, linkText: relevant.linkText, link: "#" },
         attention: { title: attention.title, linkText: attention.linkText, link: "#" },
