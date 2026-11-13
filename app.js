@@ -320,6 +320,20 @@ setInterval(rotateAppWord, 3500);
 const tifaBtn = document.getElementById("tifa-btn");
 const tifaSubtitle = document.getElementById("tifa-subtitle");
 
+/* ==========================
+   AI PARTNER & RAKE FUSION
+========================== */
+
+const taglineEl = document.querySelector(".tagline");
+
+// Load and display saved AI partner on load with FUSION branding
+const savedConfig = JSON.parse(localStorage.getItem("inform_config"));
+const activeAiPartner = (savedConfig && savedConfig.aiPartner) ? savedConfig.aiPartner : "AI";
+
+if (taglineEl) {
+    taglineEl.textContent = `RAKE & ${activeAiPartner} - FUSION`;
+}
+
 const signalElements = {
     relevant: document.getElementById("signal-relevant"),
     attention: document.getElementById("signal-attention"),
@@ -355,7 +369,11 @@ if(tifaBtn) {
         if(isGenerating) return;
         isGenerating = true;
 
-        tifaSubtitle.textContent = "Generating Signals...";
+        // Retrieve current config dynamically on tap
+        const currentConfig = JSON.parse(localStorage.getItem("inform_config")) || { aiPartner: "AI" };
+        const activePartner = currentConfig.aiPartner;
+
+        tifaSubtitle.textContent = `RAKE & ${activePartner} FUSION Complete`;
         Object.values(checkElements).forEach(el => el.classList.remove("visible"));
 
         Object.values(signalElements).forEach(el => {
@@ -385,7 +403,7 @@ if(tifaBtn) {
                     clearInterval(fillInterval);
 
                     contentElements.relevant.innerHTML = `
-                        <p><strong>AI Infrastructure Discussion</strong><br><a href="#" target="_blank" style="color: var(--secondary);">Open Source Link</a></p>
+                        <p><strong>${activePartner} Analysis: AI Infrastructure</strong><br><a href="#" target="_blank" style="color: var(--secondary);">Open Source Link</a></p>
                     `;
                     contentElements.attention.innerHTML = `
                         <p><strong>Heavy Rain Forecast (MetService)</strong><br><a href="#" target="_blank" style="color: var(--secondary);">View Alert</a></p>
@@ -398,7 +416,7 @@ if(tifaBtn) {
                     `;
 
                     Object.values(checkElements).forEach(el => el.classList.add("visible"));
-                    tifaSubtitle.textContent = "RAKE Signals Generated";
+                    tifaSubtitle.textContent = `RAKE Signals Formed by ${activePartner}`;
 
                     isGenerating = false;
                 }
@@ -406,4 +424,4 @@ if(tifaBtn) {
 
         }, 1500);
     });
-}
+}}
