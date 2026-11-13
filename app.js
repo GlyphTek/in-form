@@ -429,6 +429,26 @@ const checkElements = {
     experience: document.getElementById("check-experience")
 };
 
+const activeSourcesWrapper = document.getElementById("active-sources-wrapper");
+const activeSourcesToggle = document.getElementById("active-sources-toggle");
+const activeSourcesPanel = document.getElementById("active-sources-panel");
+const activePlatformsList = document.getElementById("active-platforms-list");
+const activeSitesList = document.getElementById("active-sites-list");
+
+let sourcesPanelOpen = false;
+
+if (activeSourcesToggle) {
+    activeSourcesToggle.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        sourcesPanelOpen = !sourcesPanelOpen;
+        activeSourcesPanel.style.display = sourcesPanelOpen ? "block" : "none";
+        activeSourcesToggle.textContent = sourcesPanelOpen 
+            ? "Active Sources ▴" 
+            : "Active Sources ▾";
+    });
+}
+
 let isGenerating = false;
 
 function getBarString(fillCount) {
@@ -439,16 +459,11 @@ function getBarString(fillCount) {
 
 /**
  * TIFA Engine + AI Layer
- * This is the core. Later you can replace the mock with real API calls.
  */
 async function generateTIFASignals(config) {
     const { aiPartner, sources, platforms } = config;
 
-    // Simulate processing time
     await new Promise(resolve => setTimeout(resolve, 1800));
-
-    // --- MOCK AI LAYER (varies by selected AI) ---
-    // This is where real AI logic will eventually live
 
     const baseSignals = {
         relevant: {
@@ -473,7 +488,7 @@ async function generateTIFASignals(config) {
         }
     };
 
-    // Slight personality shift based on AI
+    // Personality shift based on selected AI
     if (aiPartner === "Grok") {
         baseSignals.relevant.title = "xAI / Open Source Signal";
         baseSignals.knowing.title = "Truth-seeking Edge Cases";
@@ -488,7 +503,7 @@ async function generateTIFASignals(config) {
         baseSignals.knowing.title = "Clear Technical Breakdown";
     }
 
-    // If user added real sources, surface them
+    // Surface real sources if the user added any
     if (sources && sources.length > 0) {
         baseSignals.relevant.title = `Signal from ${sources[0]}`;
         if (sources[1]) {
@@ -513,6 +528,11 @@ if (tifaBtn) {
 
         // State: Generating
         tifaSubtitle.textContent = "RAKE Signals generating...";
+
+        // Hide Active Sources while generating
+        if (activeSourcesWrapper) {
+            activeSourcesWrapper.style.display = "none";
+        }
 
         // Reset UI
         Object.values(checkElements).forEach(el => el.classList.remove("visible"));
@@ -561,6 +581,39 @@ if (tifaBtn) {
 
                     // State: Complete
                     tifaSubtitle.textContent = "RAKE Generation complete";
+
+                    // Show and populate Active Sources
+                    if (activeSourcesWrapper) {
+                        activeSourcesWrapper.style.display = "block";
+                        sourcesPanelOpen = false;
+                        activeSourcesPanel.style.display = "none";
+                        activeSourcesToggle.textContent = "Active Sources ▾";
+
+                        // Platforms
+                        activePlatformsList.innerHTML = "";
+                        if (config.platforms && config.platforms.length > 0) {
+                            config.platforms.forEach(p => {
+                                const li = document.createElement("li");
+                                li.textContent = p;
+                                activePlatformsList.appendChild(li);
+                            });
+                        } else {
+                            activePlatformsList.innerHTML = "<li>None selected</li>";
+                        }
+
+                        // Sites
+                        activeSitesList.innerHTML = "";
+                        if (config.sources && config.sources.length > 0) {
+                            config.sources.forEach(s => {
+                                const li = document.createElement("li");
+                                li.textContent = s;
+                                activeSitesList.appendChild(li);
+                            });
+                        } else {
+                            activeSitesList.innerHTML = "<li>None added</li>";
+                        }
+                    }
+
                     isGenerating = false;
                 }
             }, 90);

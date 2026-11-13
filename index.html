@@ -182,10 +182,27 @@
 <!-- Updated TIFA Card with IDs -->
 <a href="#" class="context-card" id="tifa-btn">
     <div class="context-title" id="tifa-title">
-        TODAY IS FORMING AROUND
+        TODAY IS FORMING AROUND:
     </div>
     <div class="context-subtitle" id="tifa-subtitle">
         Current Signals → Tap to generate
+    </div>
+
+    <!-- Only appears after generation -->
+    <div id="active-sources-wrapper" class="active-sources-wrapper" style="display: none;">
+        <button type="button" id="active-sources-toggle" class="active-sources-toggle">
+            Active Sources ▾
+        </button>
+        <div id="active-sources-panel" class="active-sources-panel" style="display: none;">
+            <div class="sources-section">
+                <strong>Platforms</strong>
+                <ul id="active-platforms-list"></ul>
+            </div>
+            <div class="sources-section">
+                <strong>Sites</strong>
+                <ul id="active-sites-list"></ul>
+            </div>
+        </div>
     </div>
 </a>
 

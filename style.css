@@ -655,6 +655,65 @@ button[type="button"]:hover{
     padding: 0 4px;
 }
 
+.active-sources-wrapper {
+    margin-top: 12px;
+    text-align: left;
+}
+
+.active-sources-toggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--secondary);
+    font-family: inherit;
+    font-size: 0.75rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+}
+
+.active-sources-toggle:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.active-sources-panel {
+    margin-top: 10px;
+    padding: 12px;
+    background: rgba(0, 255, 136, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.8rem;
+}
+
+.sources-section {
+    margin-bottom: 10px;
+}
+
+.sources-section:last-child {
+    margin-bottom: 0;
+}
+
+.sources-section strong {
+    display: block;
+    color: var(--accent);
+    margin-bottom: 4px;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+}
+
+.sources-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sources-section li {
+    padding: 2px 0;
+    opacity: 0.85;
+}
+
 /* ===========================
    LANDING SCREEN
 =========================== */
