@@ -336,7 +336,7 @@ details[open].card{
 
     border:1px solid rgba(0,255,136,.12);
 
-    border-radius:20px;
+    border-radius:8px;
 
     box-shadow:
         0 0 18px rgba(0,255,136,.08),
@@ -379,7 +379,7 @@ details[open].card{
 .context-card{
     display:block;
     margin-top:20px;
-    padding:20px;
+    padding:15px;
     text-decoration:none;
 
     background:rgba(0,212,255,.04);
