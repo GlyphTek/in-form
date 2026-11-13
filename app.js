@@ -62,7 +62,6 @@ cards.forEach(card => {
     card.addEventListener('toggle', () => {
         if (!card.open) return;
 
-        // Find the checkmark inside this specific card and hide it
         const checkIcon = card.querySelector('.status-icon');
         if (checkIcon) {
             checkIcon.classList.remove('visible');
@@ -92,32 +91,6 @@ if(openBtn){
             landingScreen.style.display = "none";
             setupScreen.style.display = "flex";
             setupScreen.style.opacity = "1";
-        }, 500);
-    });
-}
-
-/* START button: Setup -> App */
-if(startBtn) {
-    startBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-
-        const aiSelect = document.getElementById("ai-select");
-        const platformCheckboxes = document.querySelectorAll(".platforms input[type='checkbox']");
-
-        let userConfig = {
-            aiPartner: aiSelect ? aiSelect.value : "Gemini",
-            platforms: Array.from(platformCheckboxes)
-                .filter(box => box.checked)
-                .map(box => box.parentElement.textContent.trim())
-        };
-
-        localStorage.setItem("inform_config", JSON.stringify(userConfig));
-
-        setupScreen.style.opacity = "0";
-        setTimeout(() => {
-            setupScreen.style.display = "none";
-            appScreen.style.display = "block";
-            appScreen.style.opacity = "1";
         }, 500);
     });
 }
@@ -336,7 +309,6 @@ function renderSources() {
         sourcesList.appendChild(li);
     });
 
-    // Attach remove listeners
     sourcesList.querySelectorAll("button").forEach(btn => {
         btn.addEventListener("click", () => {
             const index = parseInt(btn.dataset.index);
@@ -356,7 +328,6 @@ if (addSourceBtn) {
         }
     });
 
-    // Also allow Enter key
     sourceInput?.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
             addSourceBtn.click();
@@ -372,11 +343,9 @@ if (startBtn) {
     startBtn.addEventListener("click", (e) => {
         e.preventDefault();
 
-        const aiSelect = document.getElementById("ai-select");
         const platformCheckboxes = document.querySelectorAll(".platforms input[type='checkbox']");
 
         const userConfig = {
-            aiPartner: aiSelect ? aiSelect.value || "Grok" : "Grok",
             sources: [...userSources],
             platforms: Array.from(platformCheckboxes)
                 .filter(box => box.checked)
@@ -385,24 +354,22 @@ if (startBtn) {
 
         localStorage.setItem("inform_config", JSON.stringify(userConfig));
 
-        // Transition
         setupScreen.style.opacity = "0";
         setTimeout(() => {
             setupScreen.style.display = "none";
             appScreen.style.display = "block";
             appScreen.style.opacity = "1";
 
-            // Update tagline
             const taglineEl = document.querySelector(".tagline");
             if (taglineEl) {
-                taglineEl.textContent = `Formed with ${userConfig.aiPartner} • Powered by RAKE`;
+                taglineEl.textContent = "Powered by RAKE • Local Resonance Active";
             }
         }, 500);
     });
 }
 
 /* ==========================
-   TIFA SIGNAL GENERATION (AI LAYER)
+   LOCAL RESONANCE ENGINE (TIFA)
 ========================== */
 
 const tifaBtn = document.getElementById("tifa-btn");
@@ -458,60 +425,167 @@ function getBarString(fillCount) {
 }
 
 /**
- * TIFA Engine + AI Layer
+ * Local Resonance Engine
+ * Sites = primary material
+ * Platforms = light surface influence
  */
 async function generateTIFASignals(config) {
-    const { aiPartner, sources, platforms } = config;
+    const { sources = [], platforms = [] } = config;
 
-    await new Promise(resolve => setTimeout(resolve, 1800));
+    await new Promise(resolve => setTimeout(resolve, 1400));
 
-    const baseSignals = {
-        relevant: {
-            title: "AI Infrastructure Movements",
-            linkText: "Open Source Discussion",
-            link: "#"
+    function getThemesFromSources(sources) {
+        const themes = new Set();
+
+        sources.forEach(site => {
+            const lower = site.toLowerCase();
+
+            if (lower.includes("physics") || lower.includes("quantum") || lower.includes("arxiv")) {
+                themes.add("physics");
+            }
+            if (lower.includes("met") || lower.includes("weather") || lower.includes("climate")) {
+                themes.add("weather");
+            }
+            if (lower.includes("tech") || lower.includes("ai") || lower.includes("github") || lower.includes("arxiv")) {
+                themes.add("tech");
+            }
+            if (lower.includes("news") || lower.includes("herald") || lower.includes("bbc") || lower.includes("reuters")) {
+                themes.add("news");
+            }
+        });
+
+        if (themes.size === 0) themes.add("general");
+        return Array.from(themes);
+    }
+
+    const activeThemes = getThemesFromSources(sources);
+
+    const candidates = [
+        {
+            title: "Quantum research edge",
+            linkText: "Technical overview",
+            category: "knowing",
+            themes: ["physics"],
+            score: 0
         },
-        attention: {
-            title: "Weather Alert – Heavy Rain",
-            linkText: "View MetService Alert",
-            link: "#"
+        {
+            title: "New physics signal detected",
+            linkText: "Research brief",
+            category: "relevant",
+            themes: ["physics"],
+            score: 0
         },
-        knowing: {
-            title: "Quantum Computing Progress",
-            linkText: "PhysicsWorld Article",
-            link: "#"
+        {
+            title: "Weather conditions shifting",
+            linkText: "Current forecast",
+            category: "attention",
+            themes: ["weather"],
+            score: 0
         },
-        experience: {
-            title: "Live Tech Session Tonight",
-            linkText: "Explore Event",
-            link: "#"
+        {
+            title: "Environmental alert forming",
+            linkText: "View details",
+            category: "attention",
+            themes: ["weather"],
+            score: 0
+        },
+        {
+            title: "Open source infrastructure movement",
+            linkText: "Explore discussion",
+            category: "relevant",
+            themes: ["tech"],
+            score: 0
+        },
+        {
+            title: "AI systems pattern emerging",
+            linkText: "Technical note",
+            category: "knowing",
+            themes: ["tech"],
+            score: 0
+        },
+        {
+            title: "Live technical session",
+            linkText: "Join or follow",
+            category: "experience",
+            themes: ["tech", "general"],
+            score: 0
+        },
+        {
+            title: "Orientation signal forming",
+            linkText: "Open context",
+            category: "relevant",
+            themes: ["general"],
+            score: 0
+        },
+        {
+            title: "Attention required on current field",
+            linkText: "View signal",
+            category: "attention",
+            themes: ["general"],
+            score: 0
+        },
+        {
+            title: "Knowledge edge available",
+            linkText: "Expand understanding",
+            category: "knowing",
+            themes: ["general"],
+            score: 0
+        },
+        {
+            title: "Experience window opening",
+            linkText: "Explore possibility",
+            category: "experience",
+            themes: ["general"],
+            score: 0
         }
+    ];
+
+    candidates.forEach(c => {
+        const themeMatch = c.themes.some(t => activeThemes.includes(t));
+        if (themeMatch) c.score += 8;
+
+        if (platforms.includes("X") && c.category === "relevant") c.score += 1;
+        if (platforms.includes("YouTube") && c.category === "experience") c.score += 2;
+        if (platforms.includes("LinkedIn") && c.category === "knowing") c.score += 1;
+        if (platforms.includes("Facebook") && c.category === "attention") c.score += 1;
+
+        if (sources.length > 0 && themeMatch) {
+            c.score += 3;
+        }
+    });
+
+    function pickBest(category) {
+        const pool = candidates
+            .filter(c => c.category === category)
+            .sort((a, b) => b.score - a.score);
+
+        return pool[0] || {
+            title: "Signal forming",
+            linkText: "Open",
+            category
+        };
+    }
+
+    const relevant = pickBest("relevant");
+    const attention = pickBest("attention");
+    const knowing = pickBest("knowing");
+    const experience = pickBest("experience");
+
+    if (sources[0]) {
+        relevant.title = `Signal from ${sources[0]}`;
+    }
+    if (sources[1]) {
+        knowing.title = `Insight from ${sources[1]}`;
+    } else if (sources[0] && knowing.themes.includes("physics")) {
+        knowing.title = `Insight related to ${sources[0]}`;
+    }
+
+    return {
+        relevant: { title: relevant.title, linkText: relevant.linkText, link: "#" },
+        attention: { title: attention.title, linkText: attention.linkText, link: "#" },
+        knowing: { title: knowing.title, linkText: knowing.linkText, link: "#" },
+        experience: { title: experience.title, linkText: experience.linkText, link: "#" }
     };
-
-    // Personality shift based on selected AI
-    if (aiPartner === "Grok") {
-        baseSignals.relevant.title = "xAI / Open Source Signal";
-        baseSignals.knowing.title = "Truth-seeking Edge Cases";
-    } else if (aiPartner === "Claude") {
-        baseSignals.relevant.title = "Careful Systems Thinking";
-        baseSignals.knowing.title = "Nuanced Technical Insight";
-    } else if (aiPartner === "Gemini") {
-        baseSignals.relevant.title = "Multimodal Pattern Detected";
-        baseSignals.knowing.title = "Cross-domain Connection";
-    } else if (aiPartner === "ChatGPT") {
-        baseSignals.relevant.title = "Structured Opportunity Map";
-        baseSignals.knowing.title = "Clear Technical Breakdown";
-    }
-
-    // Surface real sources if the user added any
-    if (sources && sources.length > 0) {
-        baseSignals.relevant.title = `Signal from ${sources[0]}`;
-        if (sources[1]) {
-            baseSignals.knowing.title = `Insight from ${sources[1]}`;
-        }
-    }
-
-    return baseSignals;
 }
 
 if (tifaBtn) {
@@ -521,20 +595,16 @@ if (tifaBtn) {
         isGenerating = true;
 
         const config = JSON.parse(localStorage.getItem("inform_config")) || {
-            aiPartner: "Grok",
             sources: [],
             platforms: []
         };
 
-        // State: Generating
         tifaSubtitle.textContent = "RAKE Signals generating...";
 
-        // Hide Active Sources while generating
         if (activeSourcesWrapper) {
             activeSourcesWrapper.style.display = "none";
         }
 
-        // Reset UI
         Object.values(checkElements).forEach(el => el.classList.remove("visible"));
         Object.values(signalElements).forEach(el => {
             el.textContent = "░░░░░░░░░░";
@@ -543,7 +613,6 @@ if (tifaBtn) {
         try {
             const signals = await generateTIFASignals(config);
 
-            // Animate bars
             const targets = { relevant: 8, attention: 6, knowing: 9, experience: 7 };
             let currentStep = 0;
             const maxSteps = 10;
@@ -559,37 +628,21 @@ if (tifaBtn) {
                 if (currentStep >= maxSteps) {
                     clearInterval(fillInterval);
 
-                    // Populate cards
-                    contentElements.relevant.innerHTML = `
-                        <p><strong>${signals.relevant.title}</strong><br>
-                        <a href="${signals.relevant.link}" target="_blank" style="color: var(--secondary);">${signals.relevant.linkText}</a></p>
-                    `;
-                    contentElements.attention.innerHTML = `
-                        <p><strong>${signals.attention.title}</strong><br>
-                        <a href="${signals.attention.link}" target="_blank" style="color: var(--secondary);">${signals.attention.linkText}</a></p>
-                    `;
-                    contentElements.knowing.innerHTML = `
-                        <p><strong>${signals.knowing.title}</strong><br>
-                        <a href="${signals.knowing.link}" target="_blank" style="color: var(--secondary);">${signals.knowing.linkText}</a></p>
-                    `;
-                    contentElements.experience.innerHTML = `
-                        <p><strong>${signals.experience.title}</strong><br>
-                        <a href="${signals.experience.link}" target="_blank" style="color: var(--secondary);">${signals.experience.linkText}</a></p>
-                    `;
+                    contentElements.relevant.innerHTML = `<p><strong>${signals.relevant.title}</strong><br><a href="${signals.relevant.link}" target="_blank" style="color: var(--secondary);">${signals.relevant.linkText}</a></p>`;
+                    contentElements.attention.innerHTML = `<p><strong>${signals.attention.title}</strong><br><a href="${signals.attention.link}" target="_blank" style="color: var(--secondary);">${signals.attention.linkText}</a></p>`;
+                    contentElements.knowing.innerHTML = `<p><strong>${signals.knowing.title}</strong><br><a href="${signals.knowing.link}" target="_blank" style="color: var(--secondary);">${signals.knowing.linkText}</a></p>`;
+                    contentElements.experience.innerHTML = `<p><strong>${signals.experience.title}</strong><br><a href="${signals.experience.link}" target="_blank" style="color: var(--secondary);">${signals.experience.linkText}</a></p>`;
 
                     Object.values(checkElements).forEach(el => el.classList.add("visible"));
 
-                    // State: Complete
                     tifaSubtitle.textContent = "RAKE Generation complete";
 
-                    // Show and populate Active Sources
                     if (activeSourcesWrapper) {
                         activeSourcesWrapper.style.display = "block";
                         sourcesPanelOpen = false;
                         activeSourcesPanel.style.display = "none";
                         activeSourcesToggle.textContent = "Active Sources ▾";
 
-                        // Platforms
                         activePlatformsList.innerHTML = "";
                         if (config.platforms && config.platforms.length > 0) {
                             config.platforms.forEach(p => {
@@ -601,7 +654,6 @@ if (tifaBtn) {
                             activePlatformsList.innerHTML = "<li>None selected</li>";
                         }
 
-                        // Sites
                         activeSitesList.innerHTML = "";
                         if (config.sources && config.sources.length > 0) {
                             config.sources.forEach(s => {

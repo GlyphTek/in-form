@@ -39,59 +39,24 @@
 
     <div class="setup-container">
 
-        <h1>WELCOME TO IN-FORM</h1>
+        <h1>FORM YOUR DAY WITH RAKE</h1>
 
-        <p>Let's set you up.</p>
+        <label>WHAT FORMS YOUR DAY?</label>
 
-        <label>WHO WILL FORM WITH YOU?</label>
+        <div class="source-input-row">
+            <input type="text" id="source-input" placeholder="Enter site here...">
+            <button type="button" id="add-source-btn">+ Add Source</button>
+        </div>
 
-        <select id="ai-select">
-
-            <option value="">
-                Select Your AI
-            </option>
-
-            <option>Copilot</option>
-            <option>Gemini</option>
-            <option>ChatGPT</option>
-            <option>Claude</option>
-            <option>Grok</option>
-
-        </select>
-
-<label>WHAT FORMS YOUR DAY?</label>
-
-<div class="source-input-row">
-    <input type="text" id="source-input" placeholder="Enter site here...">
-    <button type="button" id="add-source-btn">+ Add Source</button>
-</div>
-
-<ul id="sources-list" class="sources-list"></ul>
+        <ul id="sources-list" class="sources-list"></ul>
 
         <label>WHERE DO YOU PARTICIPATE?</label>
 
         <div class="platforms">
-
-            <label>
-                <input type="checkbox">
-                X
-            </label>
-
-            <label>
-                <input type="checkbox">
-                LinkedIn
-            </label>
-
-            <label>
-                <input type="checkbox">
-                YouTube
-            </label>
-
-            <label>
-                <input type="checkbox">
-                Facebook
-            </label>
-
+            <label><input type="checkbox"> X</label>
+            <label><input type="checkbox"> LinkedIn</label>
+            <label><input type="checkbox"> YouTube</label>
+            <label><input type="checkbox"> Facebook</label>
         </div>
 
         <button id="start-btn">
