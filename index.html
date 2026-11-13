@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IN-FORM</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div id="landing-screen">
+
+    <div class="landing-container">
+
+        <h1 class="landing-logo">
+            IN-FORM
+        </h1>
+
+        <h2 class="landing-sub">
+
+            YOUR
+
+            <span id="rotating-word">
+                DAY
+            </span>
+
+        </h2>
+
+        <button id="open-btn">
+            OPEN
+        </button>
+
+    </div>
+
+</div>
+
+<div id="setup-screen">
+
+    <div class="setup-container">
+
+        <h1>WELCOME TO IN-FORM</h1>
+
+        <p>Let's set you up.</p>
+
+        <label>WHO WILL FORM WITH YOU?</label>
+
+        <select id="ai-select">
+
+            <option value="">
+                Select Your AI
+            </option>
+
+            <option>Copilot</option>
+            <option>Gemini</option>
+            <option>ChatGPT</option>
+            <option>Claude</option>
+            <option>Grok</option>
+
+        </select>
+
+        <label>WHAT FORMS YOUR DAY?</label>
+
+        <input
+            type="text"
+            placeholder="PhysicsWorld"
+        >
+
+        <input
+            type="text"
+            placeholder="MetService"
+        >
+
+        <button type="button">
+            + Add Source
+        </button>
+
+        <label>WHERE DO YOU PARTICIPATE?</label>
+
+        <div class="platforms">
+
+            <label>
+                <input type="checkbox">
+                X
+            </label>
+
+            <label>
+                <input type="checkbox">
+                LinkedIn
+            </label>
+
+            <label>
+                <input type="checkbox">
+                YouTube
+            </label>
+
+            <label>
+                <input type="checkbox">
+                Facebook
+            </label>
+
+        </div>
+
+        <button id="start-btn">
+            START IN-FORM
+        </button>
+
+    </div>
+
+</div>
+
+<div id="app-screen">
+<div class="container">
+
+    <header class="hero">
+
+        <h1 id="logo">
+
+            <span data-normal="I" data-glyph="I">I</span>
+            <span data-normal="N" data-glyph="𓍯">𓍯</span>
+            <span data-normal="-" data-glyph="-">-</span>
+            <span data-normal="F" data-glyph="F">F</span>
+            <span data-normal="O" data-glyph="𖤪">𖤪</span>
+            <span data-normal="R" data-glyph="𖤆">𖤆</span>
+            <span data-normal="M" data-glyph="𖧯">𖧯</span>
+
+        </h1>
+
+        <h2>
+            YOUR 
+            <span id="app-rotating-word">DAY</span>
+        </h2>
+
+        <p class="tagline">
+            Powered by RAKE
+        </p>
+
+    </header>
+
+<!-- Inside #app-screen -->
+
+<section class="briefing">
+
+    <details class="card" id="card-relevant">
+        <summary>
+            <span class="title">RELEVANT</span>
+            <span class="signal" id="signal-relevant">███████░░░</span>
+            <span class="status-icon" id="check-relevant">✓</span>
+        </summary>
+        <div class="content" id="content-relevant">
+            <p>What intersects with your day right now.</p>
+        </div>
+    </details>
+
+    <details class="card" id="card-attention">
+        <summary>
+            <span class="title">ATTENTION</span>
+            <span class="signal" id="signal-attention">█████░░░░░</span>
+            <span class="status-icon" id="check-attention">✓</span>
+        </summary>
+        <div class="content" id="content-attention">
+            <p>What may require awareness or action.</p>
+        </div>
+    </details>
+
+    <details class="card" id="card-knowing">
+        <summary>
+            <span class="title">KNOWING</span>
+            <span class="signal" id="signal-knowing">████████░░</span>
+            <span class="status-icon" id="check-knowing">✓</span>
+        </summary>
+        <div class="content" id="content-knowing">
+            <p>What may expand your understanding.</p>
+        </div>
+    </details>
+
+    <details class="card" id="card-experience">
+        <summary>
+            <span class="title">EXPERIENCE</span>
+            <span class="signal" id="signal-experience">██████░░░░</span>
+            <span class="status-icon" id="check-experience">✓</span>
+        </summary>
+        <div class="content" id="content-experience">
+            <p>What may be worth exploring.</p>
+        </div>
+    </details>
+
+</section>
+<!-- Updated TIFA Card with IDs -->
+<a href="#" class="context-card" id="tifa-btn">
+    <div class="context-title" id="tifa-title">
+        TODAY IS FORMING AROUND
+    </div>
+    <div class="context-subtitle" id="tifa-subtitle">
+        Current Signals → Tap to generate
+    </div>
+</a>
+
+    <footer>
+
+        <div class="rake">
+            R.A.K.E
+        </div>
+
+        <div class="rake-desc">
+            Relevant • Attention • Knowing • Experience
+        </div>
+
+    </footer>
+
+</div>
+</div>
+<script src="app.js"></script>
+
+</body>
+</html>
