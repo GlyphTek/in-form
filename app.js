@@ -287,14 +287,19 @@ function rotateAppWord() {
 setInterval(rotateAppWord, 3500);
 
 /* ==========================
-   SOURCE MANAGEMENT
+   SOURCE & PLATFORM MANAGEMENT
 ========================== */
 
 let userSources = [];
+let userPlatforms = [];
 
 const sourceInput = document.getElementById("source-input");
 const addSourceBtn = document.getElementById("add-source-btn");
 const sourcesList = document.getElementById("sources-list");
+
+const platformInput = document.getElementById("platform-input");
+const addPlatformBtn = document.getElementById("add-platform-btn");
+const platformsList = document.getElementById("platforms-list");
 
 function renderSources() {
     if (!sourcesList) return;
@@ -318,6 +323,28 @@ function renderSources() {
     });
 }
 
+function renderPlatforms() {
+    if (!platformsList) return;
+    platformsList.innerHTML = "";
+
+    userPlatforms.forEach((platform, index) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+            <span>${platform}</span>
+            <button data-index="${index}">×</button>
+        `;
+        platformsList.appendChild(li);
+    });
+
+    platformsList.querySelectorAll("button").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const index = parseInt(btn.dataset.index);
+            userPlatforms.splice(index, 1);
+            renderPlatforms();
+        });
+    });
+}
+
 if (addSourceBtn) {
     addSourceBtn.addEventListener("click", () => {
         const value = sourceInput.value.trim();
@@ -335,6 +362,23 @@ if (addSourceBtn) {
     });
 }
 
+if (addPlatformBtn) {
+    addPlatformBtn.addEventListener("click", () => {
+        const value = platformInput.value.trim();
+        if (value && !userPlatforms.includes(value)) {
+            userPlatforms.push(value);
+            platformInput.value = "";
+            renderPlatforms();
+        }
+    });
+
+    platformInput?.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+            addPlatformBtn.click();
+        }
+    });
+}
+
 /* ==========================
    START BUTTON – SAVE FULL CONFIG
 ========================== */
@@ -343,13 +387,9 @@ if (startBtn) {
     startBtn.addEventListener("click", (e) => {
         e.preventDefault();
 
-        const platformCheckboxes = document.querySelectorAll(".platforms input[type='checkbox']");
-
         const userConfig = {
             sources: [...userSources],
-            platforms: Array.from(platformCheckboxes)
-                .filter(box => box.checked)
-                .map(box => box.parentElement.textContent.trim())
+            platforms: [...userPlatforms]
         };
 
         localStorage.setItem("inform_config", JSON.stringify(userConfig));
@@ -367,7 +407,6 @@ if (startBtn) {
         }, 500);
     });
 }
-
 /* ==========================
    LOCAL RESONANCE ENGINE (TIFA)
 ========================== */
@@ -544,16 +583,26 @@ async function generateTIFASignals(config) {
         const themeMatch = c.themes.some(t => activeThemes.includes(t));
         if (themeMatch) c.score += 8;
 
-        if (platforms.includes("X") && c.category === "relevant") c.score += 1;
-        if (platforms.includes("YouTube") && c.category === "experience") c.score += 2;
-        if (platforms.includes("LinkedIn") && c.category === "knowing") c.score += 1;
-        if (platforms.includes("Facebook") && c.category === "attention") c.score += 1;
+        // Dynamic platform keyword scoring
+        platforms.forEach(p => {
+            const pLower = p.toLowerCase();
+            if (pLower.includes("x") || pLower.includes("twitter")) {
+                if (c.category === "relevant") c.score += 2;
+            }
+            if (pLower.includes("youtube") || pLower.includes("video")) {
+                if (c.category === "experience") c.score += 3;
+            }
+            if (pLower.includes("linkedin") || pLower.includes("professional")) {
+                if (c.category === "knowing") c.score += 2;
+            }
+        });
 
         if (sources.length > 0 && themeMatch) {
             c.score += 3;
         }
     });
 
+    // 2. Pick the best signals based on those scores
     function pickBest(category) {
         const pool = candidates
             .filter(c => c.category === category)
@@ -571,15 +620,7 @@ async function generateTIFASignals(config) {
     const knowing = pickBest("knowing");
     const experience = pickBest("experience");
 
-    if (sources[0]) {
-        relevant.title = `Signal from ${sources[0]}`;
-    }
-    if (sources[1]) {
-        knowing.title = `Insight from ${sources[1]}`;
-    } else if (sources[0] && knowing.themes.includes("physics")) {
-        knowing.title = `Insight related to ${sources[0]}`;
-    }
-
+    // 3. Return the finalized object
     return {
         relevant: { title: relevant.title, linkText: relevant.linkText, link: "#" },
         attention: { title: attention.title, linkText: attention.linkText, link: "#" },
