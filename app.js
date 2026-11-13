@@ -465,118 +465,316 @@ function getBarString(fillCount) {
 }
 
 /**
- * Local Resonance Engine
- * Sites = primary material
- * Platforms = light surface influence
+ * Local Resonance Engine (Fallback)
  */
-/**
- * Local Resonance Engine
- * Sites = primary material
- * Platforms = light surface influence
- */
-async function generateTIFASignals(config) {
+async function generateLocalSignals(config) {
     const { sources = [], platforms = [] } = config;
 
-    // Simulate local signal processing delay
-    await new Promise(resolve => setTimeout(resolve, 1400));
-
-    // 1. Extract themes from user sources
     function getThemesFromSources(srcs) {
         const themes = new Set();
+
         srcs.forEach(site => {
             const lower = site.toLowerCase();
-            if (lower.includes("physics") || lower.includes("quantum") || lower.includes("arxiv")) {
+
+            if (
+                lower.includes("physics") ||
+                lower.includes("quantum") ||
+                lower.includes("arxiv")
+            ) {
                 themes.add("physics");
             }
-            if (lower.includes("met") || lower.includes("weather") || lower.includes("climate")) {
+
+            if (
+                lower.includes("met") ||
+                lower.includes("weather") ||
+                lower.includes("climate")
+            ) {
                 themes.add("weather");
             }
-            if (lower.includes("tech") || lower.includes("ai") || lower.includes("github") || lower.includes("arxiv")) {
+
+            if (
+                lower.includes("tech") ||
+                lower.includes("ai") ||
+                lower.includes("github") ||
+                lower.includes("arxiv")
+            ) {
                 themes.add("tech");
             }
-            if (lower.includes("news") || lower.includes("herald") || lower.includes("bbc") || lower.includes("reuters")) {
+
+            if (
+                lower.includes("news") ||
+                lower.includes("herald") ||
+                lower.includes("bbc") ||
+                lower.includes("reuters")
+            ) {
                 themes.add("news");
             }
         });
+
         if (themes.size === 0) themes.add("general");
-        return Array.from(themes);
+
+        return [...themes];
     }
 
     const activeThemes = getThemesFromSources(sources);
 
-    // 2. Candidate signal pool
     const candidates = [
-        { title: "Quantum research edge", linkText: "Technical overview", category: "knowing", themes: ["physics"], score: 0 },
-        { title: "New physics signal detected", linkText: "Research brief", category: "relevant", themes: ["physics"], score: 0 },
-        { title: "Weather conditions shifting", linkText: "Current forecast", category: "attention", themes: ["weather"], score: 0 },
-        { title: "Environmental alert forming", linkText: "View details", category: "attention", themes: ["weather"], score: 0 },
-        { title: "Open source infrastructure movement", linkText: "Explore discussion", category: "relevant", themes: ["tech"], score: 0 },
-        { title: "AI systems pattern emerging", linkText: "Technical note", category: "knowing", themes: ["tech"], score: 0 },
-        { title: "Live technical session", linkText: "Join or follow", category: "experience", themes: ["tech", "general"], score: 0 },
-        { title: "Orientation signal forming", linkText: "Open context", category: "relevant", themes: ["general"], score: 0 },
-        { title: "Attention required on current field", linkText: "View signal", category: "attention", themes: ["general"], score: 0 },
-        { title: "Knowledge edge available", linkText: "Expand understanding", category: "knowing", themes: ["general"], score: 0 },
-        { title: "Experience window opening", linkText: "Explore possibility", category: "experience", themes: ["general"], score: 0 }
+        {
+            title: "Quantum research edge",
+            linkText: "Technical overview",
+            category: "knowing",
+            themes: ["physics"],
+            score: 0
+        },
+        {
+            title: "New physics signal detected",
+            linkText: "Research brief",
+            category: "relevant",
+            themes: ["physics"],
+            score: 0
+        },
+        {
+            title: "Weather conditions shifting",
+            linkText: "Current forecast",
+            category: "attention",
+            themes: ["weather"],
+            score: 0
+        },
+        {
+            title: "AI systems pattern emerging",
+            linkText: "Technical note",
+            category: "knowing",
+            themes: ["tech"],
+            score: 0
+        },
+        {
+            title: "Open source infrastructure movement",
+            linkText: "Explore discussion",
+            category: "relevant",
+            themes: ["tech"],
+            score: 0
+        },
+        {
+            title: "Live technical session",
+            linkText: "Join or follow",
+            category: "experience",
+            themes: ["tech", "general"],
+            score: 0
+        },
+        {
+            title: "Orientation signal forming",
+            linkText: "Open context",
+            category: "relevant",
+            themes: ["general"],
+            score: 0
+        },
+        {
+            title: "Attention required on current field",
+            linkText: "View signal",
+            category: "attention",
+            themes: ["general"],
+            score: 0
+        },
+        {
+            title: "Knowledge edge available",
+            linkText: "Expand understanding",
+            category: "knowing",
+            themes: ["general"],
+            score: 0
+        },
+        {
+            title: "Experience window opening",
+            linkText: "Explore possibility",
+            category: "experience",
+            themes: ["general"],
+            score: 0
+        }
     ];
 
-    // 3. Score candidates based on themes and platforms
     candidates.forEach(c => {
-        const themeMatch = c.themes.some(t => activeThemes.includes(t));
+        const themeMatch = c.themes.some(t =>
+            activeThemes.includes(t)
+        );
+
         if (themeMatch) c.score += 8;
 
         platforms.forEach(p => {
             const pLower = p.toLowerCase();
-            if (pLower.includes("x") || pLower.includes("twitter")) {
-                if (c.category === "relevant") c.score += 2;
+
+            if (
+                (pLower.includes("x") ||
+                    pLower.includes("twitter")) &&
+                c.category === "relevant"
+            ) {
+                c.score += 2;
             }
-            if (pLower.includes("youtube") || pLower.includes("video")) {
-                if (c.category === "experience") c.score += 3;
+
+            if (
+                (pLower.includes("youtube") ||
+                    pLower.includes("video")) &&
+                c.category === "experience"
+            ) {
+                c.score += 3;
             }
-            if (pLower.includes("linkedin") || pLower.includes("professional")) {
-                if (c.category === "knowing") c.score += 2;
+
+            if (
+                (pLower.includes("linkedin") ||
+                    pLower.includes("professional")) &&
+                c.category === "knowing"
+            ) {
+                c.score += 2;
             }
         });
-
-        if (sources.length > 0 && themeMatch) {
-            c.score += 3;
-        }
     });
 
-    // 4. Pick the best signals
-    function pickBest(category) {
-        const pool = candidates
+    const pickBest = category =>
+        candidates
             .filter(c => c.category === category)
-            .sort((a, b) => b.score - a.score);
-
-        return pool[0] || {
-            title: "Signal forming",
-            linkText: "Open",
-            category
-        };
-    }
+            .sort((a, b) => b.score - a.score)[0];
 
     const relevant = pickBest("relevant");
     const attention = pickBest("attention");
     const knowing = pickBest("knowing");
     const experience = pickBest("experience");
 
-    // 5. Personalize with actual user source names if available
-    if (sources[0]) {
-        relevant.title = `Signal from ${sources[0]}`;
-        relevant.linkText = `Inspect ${sources[0]} stream`;
-    }
-    if (sources[1]) {
-        knowing.title = `Insight from ${sources[1]}`;
-        knowing.linkText = "Read research context";
+    return {
+        relevant: {
+            title: relevant.title,
+            linkText: relevant.linkText,
+            link: "#"
+        },
+        attention: {
+            title: attention.title,
+            linkText: attention.linkText,
+            link: "#"
+        },
+        knowing: {
+            title: knowing.title,
+            linkText: knowing.linkText,
+            link: "#"
+        },
+        experience: {
+            title: experience.title,
+            linkText: experience.linkText,
+            link: "#"
+        }
+    };
+}
+
+/**
+ * TIFA Orchestrator
+ * Uses live feeds when available.
+ * Falls back to local resonance when unavailable.
+ */
+async function generateTIFASignals(config) {
+    const { sources = [], platforms = [] } = config;
+
+    // No setup? Immediately use resonance engine.
+    if (!sources.length && !platforms.length) {
+        return generateLocalSignals(config);
     }
 
-    // 6. Return finalized object
-    return {
-        relevant: { title: relevant.title, linkText: relevant.linkText, link: "#" },
-        attention: { title: attention.title, linkText: attention.linkText, link: "#" },
-        knowing: { title: knowing.title, linkText: knowing.linkText, link: "#" },
-        experience: { title: experience.title, linkText: experience.linkText, link: "#" }
-    };
+    try {
+        const results = {
+            relevant: {
+                title: "Orientation signal forming",
+                linkText: "Open context",
+                link: "#"
+            },
+            attention: {
+                title: "Current field monitoring",
+                linkText: "View signal",
+                link: "#"
+            },
+            knowing: {
+                title: "Knowledge edge available",
+                linkText: "Expand understanding",
+                link: "#"
+            },
+            experience: {
+                title: "Participation window open",
+                linkText: "Explore possibility",
+                link: "#"
+            }
+        };
+
+        if (sources.length > 0) {
+            const primarySource = sources[0];
+
+            const feedUrl = primarySource.startsWith("http")
+                ? `https://api.allorigins.win/get?url=${encodeURIComponent(primarySource)}`
+                : `https://api.allorigins.win/get?url=${encodeURIComponent(
+                      `https://news.google.com/rss/search?q=${primarySource}`
+                  )}`;
+
+            const response = await fetch(feedUrl);
+
+            if (response.ok) {
+                const data = await response.json();
+
+                const parser = new DOMParser();
+
+                const xmlDoc = parser.parseFromString(
+                    data.contents,
+                    "text/xml"
+                );
+
+                const items = xmlDoc.querySelectorAll("item");
+
+                if (items.length) {
+                    const latest = items[0];
+
+                    results.relevant = {
+                        title:
+                            latest.querySelector("title")
+                                ?.textContent ||
+                            `Signal from ${primarySource}`,
+                        linkText: `Read live stream (${primarySource})`,
+                        link:
+                            latest.querySelector("link")
+                                ?.textContent || "#"
+                    };
+                }
+            }
+        }
+
+        if (sources.length > 1) {
+            const secondarySource = sources[1];
+
+            results.knowing = {
+                title: `Insight from ${secondarySource}`,
+                linkText: "Read research context",
+                link: secondarySource.startsWith("http")
+                    ? secondarySource
+                    : "#"
+            };
+        }
+
+        if (platforms.length > 0) {
+            const platform = platforms[0];
+
+            results.attention = {
+                title: `Activity emerging on ${platform}`,
+                linkText: "Review live activity",
+                link: "#"
+            };
+
+            results.experience = {
+                title: `Participation window via ${platform}`,
+                linkText: "Open platform context",
+                link: "#"
+            };
+        }
+
+        return results;
+    } catch (err) {
+        console.warn(
+            "Live feeds unavailable. Switching to resonance mode.",
+            err
+        );
+
+        return generateLocalSignals(config);
+    }
 }
 
 if (tifaRefreshBtn) {
