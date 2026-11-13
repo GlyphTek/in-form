@@ -413,6 +413,7 @@ if (startBtn) {
 
 const tifaBtn = document.getElementById("tifa-btn");
 const tifaSubtitle = document.getElementById("tifa-subtitle");
+const tifaRefreshBtn = document.getElementById("tifa-refresh-btn");
 
 const signalElements = {
     relevant: document.getElementById("signal-relevant"),
@@ -629,6 +630,15 @@ async function generateTIFASignals(config) {
     };
 }
 
+if (tifaRefreshBtn) {
+    tifaRefreshBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Programmatically re-trigger the main TIFA click event to regenerate
+        tifaBtn.click();
+    });
+}
+
 if (tifaBtn) {
     tifaBtn.addEventListener("click", async (e) => {
         e.preventDefault();
@@ -718,3 +728,4 @@ if (tifaBtn) {
         }
     });
 }
+

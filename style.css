@@ -398,7 +398,32 @@ details[open].card{
     font-size:.72rem;
 }
 
+.tifa-footer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    width: 100%;
+}
 
+.tifa-press-btn {
+    background: transparent;
+    border: 1px solid var(--secondary);
+    color: var(--secondary);
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tifa-press-btn:hover {
+    background: var(--secondary);
+    color: #000;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
+}
 
 /* FOOTER */
 
