@@ -255,22 +255,17 @@ setInterval(rotateWord, 2000);
 
 /* OPEN button */
 
+/* OPEN button */
 if(openBtn){
-
     openBtn.addEventListener("click", () => {
-
         landingScreen.style.opacity = "0";
 
         setTimeout(() => {
-
             landingScreen.style.display = "none";
-
-            setupScreen.style.display = "flex";
-
+            setupScreen.style.display = "flex"; // Ensures flex layout activates
+            setupScreen.style.opacity = "1";
         }, 500);
-
     });
-
 }
 
 /* ==========================
