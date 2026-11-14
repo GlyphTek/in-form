@@ -674,65 +674,38 @@ async function generateTIFASignals(config) {
         return generateLocalSignals(config);
     }
 
-    try {
+try {
         const results = {
-            relevant: {
-                title: "Orientation signal forming",
-                linkText: "Open context",
-                link: "#"
-            },
-            attention: {
-                title: "Current field monitoring",
-                linkText: "View signal",
-                link: "#"
-            },
-            knowing: {
-                title: "Knowledge edge available",
-                linkText: "Expand understanding",
-                link: "#"
-            },
-            experience: {
-                title: "Participation window open",
-                linkText: "Explore possibility",
-                link: "#"
-            }
+            relevant: { title: "Orientation signal forming", linkText: "Open context", link: "#" },
+            attention: { title: "Current field monitoring", linkText: "View signal", link: "#" },
+            knowing: { title: "Knowledge edge available", linkText: "Expand understanding", link: "#" },
+            experience: { title: "Participation window open", linkText: "Explore possibility", link: "#" }
         };
 
         if (sources.length > 0) {
             const primarySource = sources[0];
 
-            const feedUrl = primarySource.startsWith("http")
-                ? `https://api.allorigins.win/get?url=${encodeURIComponent(primarySource)}`
-                : `https://api.allorigins.win/get?url=${encodeURIComponent(
-                      `https://news.google.com/rss/search?q=${primarySource}`
-                  )}`;
+            // Use corsproxy.io as a reliable, direct stream bridge
+            const targetUrl = primarySource.startsWith("http")
+                ? primarySource
+                : `https://news.google.com/rss/search?q=${encodeURIComponent(primarySource)}`;
+            
+            const feedUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
 
             const response = await fetch(feedUrl);
 
             if (response.ok) {
-                const data = await response.json();
-
+                const xmlText = await response.text();
                 const parser = new DOMParser();
-
-                const xmlDoc = parser.parseFromString(
-                    data.contents,
-                    "text/xml"
-                );
-
+                const xmlDoc = parser.parseFromString(xmlText, "text/xml");
                 const items = xmlDoc.querySelectorAll("item");
 
                 if (items.length) {
                     const latest = items[0];
-
                     results.relevant = {
-                        title:
-                            latest.querySelector("title")
-                                ?.textContent ||
-                            `Signal from ${primarySource}`,
+                        title: latest.querySelector("title")?.textContent || `Signal from ${primarySource}`,
                         linkText: `Read live stream (${primarySource})`,
-                        link:
-                            latest.querySelector("link")
-                                ?.textContent || "#"
+                        link: latest.querySelector("link")?.textContent || "#"
                     };
                 }
             }
@@ -740,25 +713,20 @@ async function generateTIFASignals(config) {
 
         if (sources.length > 1) {
             const secondarySource = sources[1];
-
             results.knowing = {
                 title: `Insight from ${secondarySource}`,
                 linkText: "Read research context",
-                link: secondarySource.startsWith("http")
-                    ? secondarySource
-                    : "#"
+                link: secondarySource.startsWith("http") ? secondarySource : "#"
             };
         }
 
         if (platforms.length > 0) {
             const platform = platforms[0];
-
             results.attention = {
                 title: `Activity emerging on ${platform}`,
                 linkText: "Review live activity",
                 link: "#"
             };
-
             results.experience = {
                 title: `Participation window via ${platform}`,
                 linkText: "Open platform context",
@@ -768,14 +736,9 @@ async function generateTIFASignals(config) {
 
         return results;
     } catch (err) {
-        console.warn(
-            "Live feeds unavailable. Switching to resonance mode.",
-            err
-        );
-
+        console.warn("Live feeds unavailable. Switching to resonance mode.", err);
         return generateLocalSignals(config);
     }
-}
 
 if (tifaRefreshBtn) {
     tifaRefreshBtn.addEventListener("click", (e) => {
