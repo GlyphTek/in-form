@@ -701,41 +701,25 @@ async function generateTIFASignals(config) {
         if (sources.length > 0) {
             const primarySource = sources[0];
 
-            const feedUrl = primarySource.startsWith("http")
-                ? `https://api.allorigins.win/get?url=${encodeURIComponent(primarySource)}`
-                : `https://api.allorigins.win/get?url=${encodeURIComponent(
-                      `https://news.google.com/rss/search?q=${primarySource}`
-                  )}`;
+const feedUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(
+    `https://news.google.com/rss/search?q=${primarySource}`
+)}`;
 
-            const response = await fetch(feedUrl);
+const response = await fetch(feedUrl);
 
-            if (response.ok) {
-                const data = await response.json();
+if (response.ok) {
+    const data = await response.json();
 
-                const parser = new DOMParser();
+    if (data.items && data.items.length > 0) {
+        const latest = data.items[0];
 
-                const xmlDoc = parser.parseFromString(
-                    data.contents,
-                    "text/xml"
-                );
-
-                const items = xmlDoc.querySelectorAll("item");
-
-                if (items.length) {
-                    const latest = items[0];
-
-                    results.relevant = {
-                        title:
-                            latest.querySelector("title")
-                                ?.textContent ||
-                            `Signal from ${primarySource}`,
-                        linkText: `Read live stream (${primarySource})`,
-                        link:
-                            latest.querySelector("link")
-                                ?.textContent || "#"
-                    };
-                }
-            }
+        results.relevant = {
+            title: latest.title || `Signal from ${primarySource}`,
+            linkText: `Read live stream (${primarySource})`,
+            link: latest.link || "#"
+        };
+    }
+}
         }
 
         if (sources.length > 1) {
