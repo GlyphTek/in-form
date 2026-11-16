@@ -252,7 +252,7 @@ function animateBackground() {
                 ctx.strokeStyle = `rgba(0, 255, 136, ${opacity})`;
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.moveTo(particles[i].x, particles[j].y);
                 ctx.lineTo(particles[j].x, particles[j].y);
                 ctx.stroke();
             }
@@ -407,6 +407,7 @@ if (startBtn) {
         }, 500);
     });
 }
+
 /* ==========================
    LOCAL RESONANCE ENGINE (TIFA)
 ========================== */
@@ -662,6 +663,148 @@ async function generateLocalSignals(config) {
 }
 
 /**
+ * Fetch raw items from all configured sources + platforms.
+ * Returns a flat dataset the classifier can score.
+ */
+async function fetchAllSources(config) {
+    const { sources = [], platforms = [] } = config;
+    const dataset = [];
+
+    // Pull live items from each source via Google News RSS proxy
+    for (const source of sources) {
+        try {
+            const feedUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(
+                `https://news.google.com/rss/search?q=${source}`
+            )}`;
+            const response = await fetch(feedUrl);
+            if (!response.ok) continue;
+
+            const data = await response.json();
+            if (!data.items || !data.items.length) continue;
+
+            data.items.slice(0, 3).forEach(item => {
+                dataset.push({
+                    title: item.title || `Signal from ${source}`,
+                    link: item.link || "#",
+                    origin: source,
+                    type: "source",
+                    published: item.pubDate || null
+                });
+            });
+        } catch (err) {
+            console.warn(`Failed to fetch source: ${source}`, err);
+        }
+    }
+
+    // Platforms become lightweight synthetic items
+    platforms.forEach(platform => {
+        dataset.push({
+            title: `Activity emerging on ${platform}`,
+            link: "#",
+            origin: platform,
+            type: "platform",
+            published: null
+        });
+        dataset.push({
+            title: `Participation window via ${platform}`,
+            link: "#",
+            origin: platform,
+            type: "platform",
+            published: null
+        });
+    });
+
+    return dataset;
+}
+
+/**
+ * Classify a flat dataset into the four RAKE channels.
+ * relevant | attention | knowing | experience
+ */
+function classify(dataset) {
+    // Defaults when the dataset is empty or thin
+    const defaults = {
+        relevant: {
+            title: "Orientation signal forming",
+            linkText: "Open context",
+            link: "#"
+        },
+        attention: {
+            title: "Current field monitoring",
+            linkText: "View signal",
+            link: "#"
+        },
+        knowing: {
+            title: "Knowledge edge available",
+            linkText: "Expand understanding",
+            link: "#"
+        },
+        experience: {
+            title: "Participation window open",
+            linkText: "Explore possibility",
+            link: "#"
+        }
+    };
+
+    if (!dataset || dataset.length === 0) {
+        return defaults;
+    }
+
+    // Simple scoring heuristics
+    const scored = dataset.map(item => {
+        let score = 1;
+        const title = (item.title || "").toLowerCase();
+        const origin = (item.origin || "").toLowerCase();
+
+        // Prefer fresher / live source material
+        if (item.type === "source") score += 4;
+        if (item.published) score += 2;
+
+        // Keyword nudges toward channels
+        if (/quantum|physics|research|arxiv|ai|tech/.test(title + origin)) {
+            score += 3;
+        }
+        if (/weather|climate|alert|breaking|live/.test(title + origin)) {
+            score += 2;
+        }
+
+        return { ...item, score };
+    });
+
+    // Sort highest score first
+    scored.sort((a, b) => b.score - a.score);
+
+    // Assign to channels
+    const relevantItem = scored.find(i => i.type === "source") || scored[0];
+    const knowingItem = scored.find(i => i !== relevantItem && i.type === "source") || scored[1] || relevantItem;
+    const attentionItem = scored.find(i => i.type === "platform") || scored[0];
+    const experienceItem = scored.find(i => i.type === "platform" && i !== attentionItem) || scored[1] || attentionItem;
+
+    return {
+        relevant: {
+            title: relevantItem.title,
+            linkText: `Read live stream (${relevantItem.origin})`,
+            link: relevantItem.link
+        },
+        attention: {
+            title: attentionItem.title,
+            linkText: "Review live activity",
+            link: attentionItem.link
+        },
+        knowing: {
+            title: knowingItem.title || `Insight from ${knowingItem.origin}`,
+            linkText: "Read research context",
+            link: knowingItem.link
+        },
+        experience: {
+            title: experienceItem.title,
+            linkText: "Open platform context",
+            link: experienceItem.link
+        }
+    };
+}
+
+/**
  * TIFA Orchestrator
  * Uses live feeds when available.
  * Falls back to local resonance when unavailable.
@@ -675,82 +818,9 @@ async function generateTIFASignals(config) {
     }
 
     try {
-        const results = {
-            relevant: {
-                title: "Orientation signal forming",
-                linkText: "Open context",
-                link: "#"
-            },
-            attention: {
-                title: "Current field monitoring",
-                linkText: "View signal",
-                link: "#"
-            },
-            knowing: {
-                title: "Knowledge edge available",
-                linkText: "Expand understanding",
-                link: "#"
-            },
-            experience: {
-                title: "Participation window open",
-                linkText: "Explore possibility",
-                link: "#"
-            }
-        };
-
-        if (sources.length > 0) {
-            const primarySource = sources[0];
-
-const feedUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(
-    `https://news.google.com/rss/search?q=${primarySource}`
-)}`;
-
-const response = await fetch(feedUrl);
-
-if (response.ok) {
-    const data = await response.json();
-
-    if (data.items && data.items.length > 0) {
-        const latest = data.items[0];
-
-        results.relevant = {
-            title: latest.title || `Signal from ${primarySource}`,
-            linkText: `Read live stream (${primarySource})`,
-            link: latest.link || "#"
-        };
-    }
-}
-        }
-
-        if (sources.length > 1) {
-            const secondarySource = sources[1];
-
-            results.knowing = {
-                title: `Insight from ${secondarySource}`,
-                linkText: "Read research context",
-                link: secondarySource.startsWith("http")
-                    ? secondarySource
-                    : "#"
-            };
-        }
-
-        if (platforms.length > 0) {
-            const platform = platforms[0];
-
-            results.attention = {
-                title: `Activity emerging on ${platform}`,
-                linkText: "Review live activity",
-                link: "#"
-            };
-
-            results.experience = {
-                title: `Participation window via ${platform}`,
-                linkText: "Open platform context",
-                link: "#"
-            };
-        }
-
-        return results;
+        const dataset = await fetchAllSources(config);
+        const rake = classify(dataset);
+        return rake;
     } catch (err) {
         console.warn(
             "Live feeds unavailable. Switching to resonance mode.",
