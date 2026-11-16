@@ -662,6 +662,25 @@ async function generateLocalSignals(config) {
     };
 }
 
+function getPlatformUrl(platform) {
+    const p = platform.toLowerCase().trim();
+
+    const platformMap = {
+        linkedin: "https://www.linkedin.com",
+        github: "https://github.com",
+        youtube: "https://www.youtube.com",
+        x: "https://x.com",
+        twitter: "https://x.com",
+        reddit: "https://www.reddit.com",
+        facebook: "https://www.facebook.com",
+        instagram: "https://www.instagram.com",
+        medium: "https://medium.com",
+        stackoverflow: "https://stackoverflow.com"
+    };
+
+    return platformMap[p] || `https://${p}`;
+}
+
 /**
  * Fetch raw items from all configured sources + platforms.
  * Returns a flat dataset the classifier can score.
@@ -670,49 +689,60 @@ async function fetchAllSources(config) {
     const { sources = [], platforms = [] } = config;
     const dataset = [];
 
-    // Pull live items from each source via Google News RSS proxy
-    for (const source of sources) {
-        try {
-            const feedUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(
-                `https://news.google.com/rss/search?q=${source}`
-            )}`;
-            const response = await fetch(feedUrl);
-            if (!response.ok) continue;
+// Pull live items from each source via Google News RSS proxy
+for (const source of sources) {
+    try {
 
-            const data = await response.json();
-            if (!data.items || !data.items.length) continue;
+        const rssUrl =
+            `https://news.google.com/rss/search?q=${encodeURIComponent(source)}`;
 
-            data.items.slice(0, 3).forEach(item => {
-                dataset.push({
-                    title: item.title || `Signal from ${source}`,
-                    link: item.link || "#",
-                    origin: source,
-                    type: "source",
-                    published: item.pubDate || null
-                });
+        const feedUrl =
+            `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
+        const response = await fetch(feedUrl);
+
+        if (!response.ok) continue;
+
+        const data = await response.json();
+
+        if (!data.items || !data.items.length) continue;
+
+        data.items.slice(0, 3).forEach(item => {
+            dataset.push({
+                title: item.title || `Signal from ${source}`,
+                link: item.link || "#",
+                origin: source,
+                type: "source",
+                published: item.pubDate || null
             });
-        } catch (err) {
-            console.warn(`Failed to fetch source: ${source}`, err);
-        }
-    }
+        });
 
+    } catch (err) {
+        console.warn(`Failed to fetch source: ${source}`, err);
+    }
+}
     // Platforms become lightweight synthetic items
-    platforms.forEach(platform => {
-        dataset.push({
-            title: `Activity emerging on ${platform}`,
-            link: "#",
-            origin: platform,
-            type: "platform",
-            published: null
-        });
-        dataset.push({
-            title: `Participation window via ${platform}`,
-            link: "#",
-            origin: platform,
-            type: "platform",
-            published: null
-        });
+platforms.forEach(platform => {
+
+    const url = getPlatformUrl(platform);
+
+    dataset.push({
+        title: `Activity emerging on ${platform}`,
+        link: url,
+        origin: platform,
+        type: "platform",
+        published: null
     });
+
+    dataset.push({
+        title: `Participation window via ${platform}`,
+        link: url,
+        origin: platform,
+        type: "platform",
+        published: null
+    });
+
+});
 
     return dataset;
 }
@@ -775,10 +805,30 @@ function classify(dataset) {
     scored.sort((a, b) => b.score - a.score);
 
     // Assign to channels
-    const relevantItem = scored.find(i => i.type === "source") || scored[0];
-    const knowingItem = scored.find(i => i !== relevantItem && i.type === "source") || scored[1] || relevantItem;
-    const attentionItem = scored.find(i => i.type === "platform") || scored[0];
-    const experienceItem = scored.find(i => i.type === "platform" && i !== attentionItem) || scored[1] || attentionItem;
+const sourceItems =
+    scored.filter(i => i.type === "source");
+
+const platformItems =
+    scored.filter(i => i.type === "platform");
+
+const relevantItem =
+    sourceItems[0] ||
+    scored[0];
+
+const attentionItem =
+    sourceItems[1] ||
+    platformItems[0] ||
+    relevantItem;
+
+const knowingItem =
+    sourceItems[2] ||
+    sourceItems[1] ||
+    relevantItem;
+
+const experienceItem =
+    platformItems[0] ||
+    sourceItems[3] ||
+    relevantItem;
 
     return {
         relevant: {
