@@ -691,11 +691,10 @@ async function fetchAllSources(config) {
 
 // Pull live items from each source via Google News RSS proxy
 for (const source of sources) {
+    try {
 
-    const feedUrl =
-        `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(source)}`;
-
-    const response = await fetch(feedUrl);
+        const rssUrl =
+            `https://news.google.com/rss/search?q=${encodeURIComponent(source)}`;
 
         const feedUrl =
             `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
