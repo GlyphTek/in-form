@@ -757,6 +757,9 @@ button[type="button"]:hover{
 .sources-section li {
     padding: 2px 0;
     opacity: 0.85;
+    /* The TIFA card is an <a>, so list text would otherwise inherit the default link blue. */
+    color: var(--text);
+    overflow-wrap: anywhere;
 }
 
 /* ===========================

@@ -48,6 +48,27 @@ outbound requests):
 npm run ingest -- "quantum computing" bbc.com https://example.com/feed.xml
 ```
 
+## Signals API
+
+`POST /api/signals/generate` with `{ "sources": ["..."], "platforms": ["..."] }`
+returns:
+
+- `status`: `ok`, `partial`, `unavailable` or `no_sources`
+- `channels`: `relevant`, `attention`, `knowing`, `experience`; each is
+  `{ title, link, linkText, source, published, score (1-10), reason }` or `null`
+  when nothing suitable exists
+- `sources`: per-source health (`ok` / `stale` / `error`, item count, error)
+- `platforms`: link-outs only (`url` is `null` when the name is not a known
+  platform or domain)
+
+Channel assignment (`server/signals/rank.js`) is rule-based: recency decay plus
+whole-word cue lists for Attention, Knowing and Experience. An item appears in
+at most one channel, and a channel with nothing suitable stays empty rather
+than being padded. The endpoint is rate limited and validates input strictly.
+
+The frontend never shows placeholder signals. If the server cannot be reached
+it says so and shows empty channels.
+
 ## Configuration
 
 | Variable | Default | Notes |
@@ -56,3 +77,6 @@ npm run ingest -- "quantum computing" bbc.com https://example.com/feed.xml
 | `HOST` | `127.0.0.1` | Set `0.0.0.0` deliberately when deploying |
 | `LOG_LEVEL` | `info` | `silent` disables logging |
 | `DATABASE_PATH` | `data/inform.db` | Point at a persistent volume in production |
+| `TRUST_PROXY` | `false` | Set `true` behind Fly.io or nginx so rate limits use real client IPs |
+| `RATE_LIMIT_PER_MINUTE` | `120` | Per client, API routes |
+| `GENERATE_RATE_LIMIT_PER_MINUTE` | `12` | Per client, `/api/signals/generate` |

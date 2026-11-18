@@ -422,7 +422,7 @@ if (startBtn) {
 
             const taglineEl = document.querySelector(".tagline");
             if (taglineEl) {
-                taglineEl.textContent = "Powered by RAKE • Local Resonance Active";
+                taglineEl.textContent = "Powered by RAKE";
             }
         }, 500);
     });
@@ -491,517 +491,256 @@ function getBarString(fillCount) {
     return filled + empty;
 }
 
-/**
- * Local Resonance Engine (Fallback)
- */
-async function generateLocalSignals(config) {
-    const { sources = [], platforms = [] } = config;
+/* ==========================
+   LIVE SIGNALS
 
-    function getThemesFromSources(srcs) {
-        const themes = new Set();
+   The server fetches, parses and ranks (POST /api/signals/generate).
+   If it cannot be reached we say so plainly. We never show placeholder
+   signals, because content that looks live but isn't undermines trust.
+========================== */
 
-        srcs.forEach(site => {
-            const lower = site.toLowerCase();
+const CHANNELS = ["relevant", "attention", "knowing", "experience"];
+const EMPTY_BAR = "░░░░░░░░░░";
+const EMPTY_CHANNEL_TEXT = "Nothing in this channel right now.";
+const UNAVAILABLE_TEXT =
+    "Live signals are unavailable right now. Nothing is shown rather than placeholder content.";
 
-            if (
-                lower.includes("physics") ||
-                lower.includes("quantum") ||
-                lower.includes("arxiv")
-            ) {
-                themes.add("physics");
-            }
-
-            if (
-                lower.includes("met") ||
-                lower.includes("weather") ||
-                lower.includes("climate")
-            ) {
-                themes.add("weather");
-            }
-
-            if (
-                lower.includes("tech") ||
-                lower.includes("ai") ||
-                lower.includes("github") ||
-                lower.includes("arxiv")
-            ) {
-                themes.add("tech");
-            }
-
-            if (
-                lower.includes("news") ||
-                lower.includes("herald") ||
-                lower.includes("bbc") ||
-                lower.includes("reuters")
-            ) {
-                themes.add("news");
-            }
-        });
-
-        if (themes.size === 0) themes.add("general");
-
-        return [...themes];
+class SignalsError extends Error {
+    constructor(kind, message) {
+        super(message);
+        this.kind = kind;
     }
-
-    const activeThemes = getThemesFromSources(sources);
-
-    const candidates = [
-        {
-            title: "Quantum research edge",
-            linkText: "Technical overview",
-            category: "knowing",
-            themes: ["physics"],
-            score: 0
-        },
-        {
-            title: "New physics signal detected",
-            linkText: "Research brief",
-            category: "relevant",
-            themes: ["physics"],
-            score: 0
-        },
-        {
-            title: "Weather conditions shifting",
-            linkText: "Current forecast",
-            category: "attention",
-            themes: ["weather"],
-            score: 0
-        },
-        {
-            title: "AI systems pattern emerging",
-            linkText: "Technical note",
-            category: "knowing",
-            themes: ["tech"],
-            score: 0
-        },
-        {
-            title: "Open source infrastructure movement",
-            linkText: "Explore discussion",
-            category: "relevant",
-            themes: ["tech"],
-            score: 0
-        },
-        {
-            title: "Live technical session",
-            linkText: "Join or follow",
-            category: "experience",
-            themes: ["tech", "general"],
-            score: 0
-        },
-        {
-            title: "Orientation signal forming",
-            linkText: "Open context",
-            category: "relevant",
-            themes: ["general"],
-            score: 0
-        },
-        {
-            title: "Attention required on current field",
-            linkText: "View signal",
-            category: "attention",
-            themes: ["general"],
-            score: 0
-        },
-        {
-            title: "Knowledge edge available",
-            linkText: "Expand understanding",
-            category: "knowing",
-            themes: ["general"],
-            score: 0
-        },
-        {
-            title: "Experience window opening",
-            linkText: "Explore possibility",
-            category: "experience",
-            themes: ["general"],
-            score: 0
-        }
-    ];
-
-    candidates.forEach(c => {
-        const themeMatch = c.themes.some(t =>
-            activeThemes.includes(t)
-        );
-
-        if (themeMatch) c.score += 8;
-
-        platforms.forEach(p => {
-            const pLower = p.toLowerCase();
-
-            if (
-                (pLower.includes("x") ||
-                    pLower.includes("twitter")) &&
-                c.category === "relevant"
-            ) {
-                c.score += 2;
-            }
-
-            if (
-                (pLower.includes("youtube") ||
-                    pLower.includes("video")) &&
-                c.category === "experience"
-            ) {
-                c.score += 3;
-            }
-
-            if (
-                (pLower.includes("linkedin") ||
-                    pLower.includes("professional")) &&
-                c.category === "knowing"
-            ) {
-                c.score += 2;
-            }
-        });
-    });
-
-    const pickBest = category =>
-        candidates
-            .filter(c => c.category === category)
-            .sort((a, b) => b.score - a.score)[0];
-
-    const relevant = pickBest("relevant");
-    const attention = pickBest("attention");
-    const knowing = pickBest("knowing");
-    const experience = pickBest("experience");
-
-    return {
-        relevant: {
-            title: relevant.title,
-            linkText: relevant.linkText,
-            link: "#"
-        },
-        attention: {
-            title: attention.title,
-            linkText: attention.linkText,
-            link: "#"
-        },
-        knowing: {
-            title: knowing.title,
-            linkText: knowing.linkText,
-            link: "#"
-        },
-        experience: {
-            title: experience.title,
-            linkText: experience.linkText,
-            link: "#"
-        }
-    };
 }
 
-function getPlatformUrl(platform) {
-    const p = platform.toLowerCase().trim();
-
-    const platformMap = {
-        linkedin: "https://www.linkedin.com",
-        github: "https://github.com",
-        youtube: "https://www.youtube.com",
-        x: "https://x.com",
-        twitter: "https://x.com",
-        reddit: "https://www.reddit.com",
-        facebook: "https://www.facebook.com",
-        instagram: "https://www.instagram.com",
-        medium: "https://medium.com",
-        stackoverflow: "https://stackoverflow.com"
-    };
-
-    return platformMap[p] || `https://${p}`;
-}
-
-/**
- * Fetch raw items from all configured sources + platforms.
- * Returns a flat dataset the classifier can score.
- */
-async function fetchAllSources(config) {
-    const { sources = [], platforms = [] } = config;
-    const dataset = [];
-
-// Pull live items from each source via Google News RSS proxy
-for (const source of sources) {
+function loadConfig() {
     try {
-
-        const rssUrl =
-            `https://news.google.com/rss/search?q=${encodeURIComponent(source)}`;
-
-        const feedUrl =
-            `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
-
-        const response = await fetch(feedUrl);
-
-        if (!response.ok) continue;
-
-        const data = await response.json();
-
-        if (!data.items || !data.items.length) continue;
-
-        data.items.slice(0, 3).forEach(item => {
-            dataset.push({
-                title: item.title || `Signal from ${source}`,
-                link: item.link || "#",
-                origin: source,
-                type: "source",
-                published: item.pubDate || null
-            });
-        });
-
+        const saved = JSON.parse(localStorage.getItem("inform_config"));
+        if (saved && typeof saved === "object") {
+            return {
+                sources: Array.isArray(saved.sources) ? saved.sources : [],
+                platforms: Array.isArray(saved.platforms) ? saved.platforms : []
+            };
+        }
     } catch (err) {
-        console.warn(`Failed to fetch source: ${source}`, err);
+        console.warn("Could not read saved configuration", err);
     }
-}
-    // Platforms become lightweight synthetic items
-platforms.forEach(platform => {
-
-    const url = getPlatformUrl(platform);
-
-    dataset.push({
-        title: `Activity emerging on ${platform}`,
-        link: url,
-        origin: platform,
-        type: "platform",
-        published: null
-    });
-
-    dataset.push({
-        title: `Participation window via ${platform}`,
-        link: url,
-        origin: platform,
-        type: "platform",
-        published: null
-    });
-
-});
-
-    return dataset;
+    return { sources: [], platforms: [] };
 }
 
-/**
- * Classify a flat dataset into the four RAKE channels.
- * relevant | attention | knowing | experience
- */
-function classify(dataset) {
-    // Defaults when the dataset is empty or thin
-    const defaults = {
-        relevant: {
-            title: "Orientation signal forming",
-            linkText: "Open context",
-            link: "#"
-        },
-        attention: {
-            title: "Current field monitoring",
-            linkText: "View signal",
-            link: "#"
-        },
-        knowing: {
-            title: "Knowledge edge available",
-            linkText: "Expand understanding",
-            link: "#"
-        },
-        experience: {
-            title: "Participation window open",
-            linkText: "Explore possibility",
-            link: "#"
-        }
-    };
-
-    if (!dataset || dataset.length === 0) {
-        return defaults;
-    }
-
-    // Simple scoring heuristics
-    const scored = dataset.map(item => {
-        let score = 1;
-        const title = (item.title || "").toLowerCase();
-        const origin = (item.origin || "").toLowerCase();
-
-        // Prefer fresher / live source material
-        if (item.type === "source") score += 4;
-        if (item.published) score += 2;
-
-        // Keyword nudges toward channels
-        if (/quantum|physics|research|arxiv|ai|tech/.test(title + origin)) {
-            score += 3;
-        }
-        if (/weather|climate|alert|breaking|live/.test(title + origin)) {
-            score += 2;
-        }
-
-        return { ...item, score };
-    });
-
-    // Sort highest score first
-    scored.sort((a, b) => b.score - a.score);
-
-    // Assign to channels
-const sourceItems =
-    scored.filter(i => i.type === "source");
-
-const platformItems =
-    scored.filter(i => i.type === "platform");
-
-const relevantItem =
-    sourceItems[0] ||
-    scored[0];
-
-const attentionItem =
-    sourceItems[1] ||
-    platformItems[0] ||
-    relevantItem;
-
-const knowingItem =
-    sourceItems[2] ||
-    sourceItems[1] ||
-    relevantItem;
-
-const experienceItem =
-    platformItems[0] ||
-    sourceItems[3] ||
-    relevantItem;
-
-    return {
-        relevant: {
-            title: relevantItem.title,
-            linkText: `Read live stream (${relevantItem.origin})`,
-            link: relevantItem.link
-        },
-        attention: {
-            title: attentionItem.title,
-            linkText: "Review live activity",
-            link: attentionItem.link
-        },
-        knowing: {
-            title: knowingItem.title || `Insight from ${knowingItem.origin}`,
-            linkText: "Read research context",
-            link: knowingItem.link
-        },
-        experience: {
-            title: experienceItem.title,
-            linkText: "Open platform context",
-            link: experienceItem.link
-        }
-    };
-}
-
-/**
- * TIFA Orchestrator
- * Uses live feeds when available.
- * Falls back to local resonance when unavailable.
- */
-async function generateTIFASignals(config) {
-    const { sources = [], platforms = [] } = config;
-
-    // No setup? Immediately use resonance engine.
-    if (!sources.length && !platforms.length) {
-        return generateLocalSignals(config);
-    }
+async function requestSignals(config) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 45000);
 
     try {
-        const dataset = await fetchAllSources(config);
-        const rake = classify(dataset);
-        return rake;
-    } catch (err) {
-        console.warn(
-            "Live feeds unavailable. Switching to resonance mode.",
-            err
-        );
+        const response = await fetch("/api/signals/generate", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+                sources: config.sources,
+                platforms: config.platforms
+            }),
+            signal: controller.signal
+        });
 
-        return generateLocalSignals(config);
+        if (response.status === 429) {
+            throw new SignalsError("rate_limited", "Too many requests. Wait a moment and try again.");
+        }
+        if (!response.ok) {
+            throw new SignalsError("http", `The server responded with ${response.status}.`);
+        }
+
+        let data;
+        try {
+            data = await response.json();
+        } catch {
+            throw new SignalsError("bad_response", "The server sent an unexpected response.");
+        }
+        if (!data || typeof data !== "object" || !data.channels || !data.status) {
+            throw new SignalsError("bad_response", "The server sent an unexpected response.");
+        }
+        return data;
+    } catch (err) {
+        if (err instanceof SignalsError) throw err;
+        if (err && err.name === "AbortError") {
+            throw new SignalsError("timeout", "The server took too long to respond.");
+        }
+        throw new SignalsError("unreachable", "Could not reach the IN-FORM server.");
+    } finally {
+        clearTimeout(timer);
     }
+}
+
+function subtitleFor(result) {
+    const sources = result.sources || [];
+    switch (result.status) {
+        case "ok":
+            return "RAKE Generation complete";
+        case "partial": {
+            const failed = sources.filter(s => s.status === "error").length;
+            return failed
+                ? `Generated, but ${failed} of ${sources.length} sources are unavailable`
+                : "Generated, with some sources showing older data";
+        }
+        case "unavailable":
+            return "No live signals: your sources could not be reached";
+        case "no_sources":
+            return "Add a site, feed or topic in setup to generate signals";
+        default:
+            return "RAKE Generation complete";
+    }
+}
+
+function renderListItems(listEl, items, emptyText) {
+    listEl.innerHTML = "";
+    if (!items.length) {
+        const li = document.createElement("li");
+        li.textContent = emptyText;
+        listEl.appendChild(li);
+        return;
+    }
+    items.forEach(build => listEl.appendChild(build()));
+}
+
+function renderActiveSources(config, result) {
+    if (!activeSourcesWrapper) return;
+    activeSourcesWrapper.style.display = "block";
+    sourcesPanelOpen = false;
+    activeSourcesPanel.style.display = "none";
+    activeSourcesToggle.textContent = "Active Sources ▾";
+
+    // Platforms are link-outs only.
+    const platforms = result ? result.platforms || [] : config.platforms.map(name => ({ name, url: null }));
+    renderListItems(
+        activePlatformsList,
+        platforms.map(p => () => {
+            const li = document.createElement("li");
+            const url = p.url ? safeUrl(p.url) : "#";
+            if (url !== "#") {
+                const a = document.createElement("a");
+                a.href = url;
+                a.target = "_blank";
+                a.rel = "noopener noreferrer";
+                a.style.color = "var(--secondary)";
+                a.textContent = p.name;
+                li.appendChild(a);
+            } else {
+                li.textContent = p.name;
+            }
+            return li;
+        }),
+        "None selected"
+    );
+
+    // Sites show what actually happened to each source.
+    const sites = result
+        ? result.sources || []
+        : config.sources.map(input => ({ input, status: "unchecked" }));
+    renderListItems(
+        activeSitesList,
+        sites.map(s => () => {
+            const li = document.createElement("li");
+            let note = "";
+            if (s.status === "ok") note = `✓ ${s.itemCount} items`;
+            else if (s.status === "stale") note = "⚠ showing older data";
+            else if (s.status === "error") note = `✗ ${s.error ? s.error.message : "unavailable"}`;
+            else note = "not checked";
+            li.textContent = `${s.input}: ${note}`;
+            return li;
+        }),
+        "None added"
+    );
+}
+
+function setChannelBars(targets, step) {
+    CHANNELS.forEach(channel => {
+        signalElements[channel].textContent = getBarString(Math.min(step, targets[channel]));
+    });
+}
+
+function showUnavailable(config, message) {
+    CHANNELS.forEach(channel => {
+        signalElements[channel].textContent = EMPTY_BAR;
+        contentElements[channel].innerHTML = `<p>${escapeHtml(UNAVAILABLE_TEXT)}</p>`;
+    });
+    tifaSubtitle.textContent = `Live signals unavailable. ${message} Tap to retry.`;
+    renderActiveSources(config, null);
+    isGenerating = false;
+}
+
+function showSignals(config, result) {
+    const targets = {};
+    CHANNELS.forEach(channel => {
+        const signal = result.channels[channel];
+        targets[channel] = signal ? Math.max(0, Math.min(10, Number(signal.score) || 0)) : 0;
+    });
+
+    let currentStep = 0;
+    const maxSteps = 10;
+
+    const fillInterval = setInterval(() => {
+        currentStep++;
+        setChannelBars(targets, currentStep);
+
+        if (currentStep < maxSteps) return;
+        clearInterval(fillInterval);
+
+        CHANNELS.forEach(channel => {
+            const signal = result.channels[channel];
+            contentElements[channel].innerHTML = signal
+                ? renderSignalHtml(signal)
+                : `<p>${escapeHtml(EMPTY_CHANNEL_TEXT)}</p>`;
+            if (signal) checkElements[channel].classList.add("visible");
+        });
+
+        tifaSubtitle.textContent = subtitleFor(result);
+        renderActiveSources(config, result);
+        isGenerating = false;
+    }, 90);
+}
+
+async function runTifa() {
+    if (isGenerating) return;
+    isGenerating = true;
+
+    const config = loadConfig();
+
+    tifaSubtitle.textContent = "RAKE Signals generating...";
+    if (activeSourcesWrapper) activeSourcesWrapper.style.display = "none";
+    Object.values(checkElements).forEach(el => el.classList.remove("visible"));
+    Object.values(signalElements).forEach(el => {
+        el.textContent = EMPTY_BAR;
+    });
+
+    let result;
+    try {
+        result = await requestSignals(config);
+    } catch (err) {
+        console.warn("Signal generation failed", err);
+        showUnavailable(config, err.message || "Something went wrong.");
+        return;
+    }
+
+    showSignals(config, result);
+}
+
+if (activeSourcesPanel) {
+    // The panel sits inside the clickable TIFA card; keep its clicks (including
+    // platform links) from re-triggering generation.
+    activeSourcesPanel.addEventListener("click", (e) => e.stopPropagation());
 }
 
 if (tifaRefreshBtn) {
     tifaRefreshBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        // Programmatically re-trigger the main TIFA click event to regenerate
-        tifaBtn.click();
+        runTifa();
     });
 }
 
 if (tifaBtn) {
-    tifaBtn.addEventListener("click", async (e) => {
+    tifaBtn.addEventListener("click", (e) => {
         e.preventDefault();
-        if (isGenerating) return;
-        isGenerating = true;
-
-        const config = JSON.parse(localStorage.getItem("inform_config")) || {
-            sources: [],
-            platforms: []
-        };
-
-        tifaSubtitle.textContent = "RAKE Signals generating...";
-
-        if (activeSourcesWrapper) {
-            activeSourcesWrapper.style.display = "none";
-        }
-
-        Object.values(checkElements).forEach(el => el.classList.remove("visible"));
-        Object.values(signalElements).forEach(el => {
-            el.textContent = "░░░░░░░░░░";
-        });
-
-        try {
-            const signals = await generateTIFASignals(config);
-
-            const targets = { relevant: 8, attention: 6, knowing: 9, experience: 7 };
-            let currentStep = 0;
-            const maxSteps = 10;
-
-            const fillInterval = setInterval(() => {
-                currentStep++;
-
-                signalElements.relevant.textContent = getBarString(Math.min(currentStep, targets.relevant));
-                signalElements.attention.textContent = getBarString(Math.min(currentStep, targets.attention));
-                signalElements.knowing.textContent = getBarString(Math.min(currentStep, targets.knowing));
-                signalElements.experience.textContent = getBarString(Math.min(currentStep, targets.experience));
-
-                if (currentStep >= maxSteps) {
-                    clearInterval(fillInterval);
-
-                    ["relevant", "attention", "knowing", "experience"].forEach(channel => {
-                        contentElements[channel].innerHTML = renderSignalHtml(signals[channel]);
-                    });
-
-                    Object.values(checkElements).forEach(el => el.classList.add("visible"));
-
-                    tifaSubtitle.textContent = "RAKE Generation complete";
-
-                    if (activeSourcesWrapper) {
-                        activeSourcesWrapper.style.display = "block";
-                        sourcesPanelOpen = false;
-                        activeSourcesPanel.style.display = "none";
-                        activeSourcesToggle.textContent = "Active Sources ▾";
-
-                        activePlatformsList.innerHTML = "";
-                        if (config.platforms && config.platforms.length > 0) {
-                            config.platforms.forEach(p => {
-                                const li = document.createElement("li");
-                                li.textContent = p;
-                                activePlatformsList.appendChild(li);
-                            });
-                        } else {
-                            activePlatformsList.innerHTML = "<li>None selected</li>";
-                        }
-
-                        activeSitesList.innerHTML = "";
-                        if (config.sources && config.sources.length > 0) {
-                            config.sources.forEach(s => {
-                                const li = document.createElement("li");
-                                li.textContent = s;
-                                activeSitesList.appendChild(li);
-                            });
-                        } else {
-                            activeSitesList.innerHTML = "<li>None added</li>";
-                        }
-                    }
-
-                    isGenerating = false;
-                }
-            }, 90);
-
-        } catch (err) {
-            console.error(err);
-            tifaSubtitle.textContent = "Generation failed";
-            isGenerating = false;
-        }
+        runTifa();
     });
 }
 
