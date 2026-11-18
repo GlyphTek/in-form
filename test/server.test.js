@@ -1,11 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadConfig } from "../server/config.js";
+import { testConfig } from "./helpers.js";
 import { buildApp } from "../server/app.js";
 import { openDatabase, runMigrations } from "../server/db.js";
 
 async function makeApp() {
-  const config = { ...loadConfig({}), logLevel: "silent", databasePath: ":memory:" };
+  const config = testConfig();
   return buildApp(config, { db: openDatabase(":memory:") });
 }
 
@@ -47,7 +47,7 @@ test("unknown /api routes return JSON 404", async () => {
 });
 
 test("migrations are idempotent", async () => {
-  const config = loadConfig({});
+  const config = testConfig();
   const db = openDatabase(":memory:");
   const first = runMigrations(db, config.migrationsDir, {});
   const second = runMigrations(db, config.migrationsDir, {});

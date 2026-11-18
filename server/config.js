@@ -15,8 +15,33 @@ function readPort(value, fallback) {
   return port;
 }
 
+// Authentication mode, decided once from the environment:
+//   password      INFORM_PASSWORD is set (12+ characters). The normal mode.
+//   off           INFORM_AUTH=off. Local development only: every request acts as
+//                 the owner, so never expose this to a network.
+//   unconfigured  neither is set. buildApp refuses to start, so a forgotten
+//                 variable can never leave a deployed instance open.
+function readAuth(env) {
+  const password = env.INFORM_PASSWORD || "";
+  const mode = password ? "password" : env.INFORM_AUTH === "off" ? "off" : "unconfigured";
+  return {
+    mode,
+    password,
+    ownerEmail: env.INFORM_USER_EMAIL || "owner@in-form.local",
+    sessionDays: Number(env.SESSION_DAYS) || 30,
+    loginRateLimitPerMinute: Number(env.LOGIN_RATE_LIMIT_PER_MINUTE) || 8,
+  };
+}
+
 export function loadConfig(env = process.env) {
   return {
+    auth: readAuth(env),
+    // Extra origins allowed to make API writes, e.g. https://inform.example.com.
+    // Only needed if a proxy rewrites the Host header; same-host requests always pass.
+    allowedOrigins: (env.ALLOWED_ORIGINS || "")
+      .split(",")
+      .map((s) => s.trim().replace(/\/$/, ""))
+      .filter(Boolean),
     rootDir,
     env: env.NODE_ENV || "development",
     port: readPort(env.PORT, 3000),

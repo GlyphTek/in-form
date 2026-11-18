@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadConfig } from "../../server/config.js";
+import { testConfig } from "../helpers.js";
 import { buildApp } from "../../server/app.js";
 import { openDatabase } from "../../server/db.js";
 
@@ -25,7 +25,7 @@ const ingestor = {
 };
 
 async function makeApp(overrides = {}) {
-  const config = { ...loadConfig({}), logLevel: "silent", ...overrides };
+  const config = testConfig(overrides);
   return buildApp(config, { db: openDatabase(":memory:"), ingestor });
 }
 
