@@ -339,6 +339,7 @@ function renderSources() {
         btn.addEventListener("click", () => {
             const index = parseInt(btn.dataset.index);
             userSources.splice(index, 1);
+            setSetupDirty(true);
             renderSources();
         });
     });
@@ -361,6 +362,7 @@ function renderPlatforms() {
         btn.addEventListener("click", () => {
             const index = parseInt(btn.dataset.index);
             userPlatforms.splice(index, 1);
+            setSetupDirty(true);
             renderPlatforms();
         });
     });
@@ -372,6 +374,7 @@ if (addSourceBtn) {
         if (value && !userSources.includes(value)) {
             userSources.push(value);
             sourceInput.value = "";
+            setSetupDirty(true);
             renderSources();
         }
     });
@@ -388,6 +391,7 @@ if (addPlatformBtn) {
         const value = platformInput.value.trim();
         if (value && !userPlatforms.includes(value)) {
             userPlatforms.push(value);
+            setSetupDirty(true);
             platformInput.value = "";
             renderPlatforms();
         }
@@ -533,6 +537,22 @@ function showLoginAgain(message) {
  * account, the setup already saved in that browser is carried over.
  * Returns the screen to show next: "setup" or "login".
  */
+// Edits to the setup lists only take effect when START is pressed, so say so
+// while there are unsaved changes and warn before leaving the page with them.
+const unsavedNote = document.getElementById("setup-unsaved");
+let setupDirty = false;
+
+function setSetupDirty(dirty) {
+    setupDirty = dirty;
+    if (unsavedNote) unsavedNote.hidden = !dirty;
+}
+
+window.addEventListener("beforeunload", (e) => {
+    if (!setupDirty) return;
+    e.preventDefault();
+    e.returnValue = "";
+});
+
 async function preloadSetup() {
     let config = loadConfig();
 
@@ -566,6 +586,7 @@ async function preloadSetup() {
     userPlatforms = [...config.platforms];
     renderSources();
     renderPlatforms();
+    setSetupDirty(false);
     if (setupError) setupError.textContent = "";
     return "setup";
 }
@@ -661,6 +682,8 @@ if (startBtn) {
         }
 
         saveLocalConfig(userConfig);
+        // Only a confirmed account save counts as saved; otherwise keep warning.
+        if (!syncNote) setSetupDirty(false);
 
         setupScreen.style.opacity = "0";
         setTimeout(() => {

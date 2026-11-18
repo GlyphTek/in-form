@@ -85,6 +85,12 @@ unavailable), **sign-in required**, and **signed in** (setup follows you across
 devices). The first time a browser signs in to an empty account, the setup
 already saved in that browser is carried over once.
 
+Your topics and platforms are saved in the account, not the browser, so
+clearing browser storage or cache does not remove them. Edits on the setup
+screen (adding or removing) only take effect when you press START; until then
+the screen says "Changes not saved yet" and the browser asks before you leave
+the page.
+
 ## Signals API
 
 `POST /api/signals/generate` with `{ "sources": ["..."], "platforms": ["..."] }`

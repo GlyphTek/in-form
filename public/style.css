@@ -1111,3 +1111,14 @@ button[type="button"]:hover{
     line-height:1.5;
     color:#8a8a8a;
 }
+
+.setup-unsaved{
+    margin-top:10px;
+    font-size:.7rem;
+    color:#ffcc66;
+    text-align:center;
+}
+
+.setup-unsaved[hidden]{
+    display:none;
+}
