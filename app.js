@@ -252,7 +252,7 @@ function animateBackground() {
                 ctx.strokeStyle = `rgba(0, 255, 136, ${opacity})`;
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(particles[i].x, particles[j].y);
+                ctx.moveTo(particles[i].x, particles[i].y);
                 ctx.lineTo(particles[j].x, particles[j].y);
                 ctx.stroke();
             }
@@ -290,6 +290,26 @@ setInterval(rotateAppWord, 3500);
    SOURCE & PLATFORM MANAGEMENT
 ========================== */
 
+/* Escape untrusted text before inserting it into HTML. */
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+/* Only allow http(s) links; anything else becomes "#". */
+function safeUrl(value) {
+    try {
+        const u = new URL(String(value), window.location.href);
+        return (u.protocol === "http:" || u.protocol === "https:") ? u.href : "#";
+    } catch {
+        return "#";
+    }
+}
+
 let userSources = [];
 let userPlatforms = [];
 
@@ -308,7 +328,7 @@ function renderSources() {
     userSources.forEach((source, index) => {
         const li = document.createElement("li");
         li.innerHTML = `
-            <span>${source}</span>
+            <span>${escapeHtml(source)}</span>
             <button data-index="${index}">×</button>
         `;
         sourcesList.appendChild(li);
@@ -330,7 +350,7 @@ function renderPlatforms() {
     userPlatforms.forEach((platform, index) => {
         const li = document.createElement("li");
         li.innerHTML = `
-            <span>${platform}</span>
+            <span>${escapeHtml(platform)}</span>
             <button data-index="${index}">×</button>
         `;
         platformsList.appendChild(li);
@@ -458,6 +478,12 @@ if (activeSourcesToggle) {
 }
 
 let isGenerating = false;
+
+function renderSignalHtml(signal) {
+    return `<p><strong>${escapeHtml(signal.title)}</strong><br>` +
+        `<a href="${escapeHtml(safeUrl(signal.link))}" target="_blank" rel="noopener noreferrer" ` +
+        `style="color: var(--secondary);">${escapeHtml(signal.linkText)}</a></p>`;
+}
 
 function getBarString(fillCount) {
     const filled = "█".repeat(fillCount);
@@ -930,10 +956,9 @@ if (tifaBtn) {
                 if (currentStep >= maxSteps) {
                     clearInterval(fillInterval);
 
-                    contentElements.relevant.innerHTML = `<p><strong>${signals.relevant.title}</strong><br><a href="${signals.relevant.link}" target="_blank" style="color: var(--secondary);">${signals.relevant.linkText}</a></p>`;
-                    contentElements.attention.innerHTML = `<p><strong>${signals.attention.title}</strong><br><a href="${signals.attention.link}" target="_blank" style="color: var(--secondary);">${signals.attention.linkText}</a></p>`;
-                    contentElements.knowing.innerHTML = `<p><strong>${signals.knowing.title}</strong><br><a href="${signals.knowing.link}" target="_blank" style="color: var(--secondary);">${signals.knowing.linkText}</a></p>`;
-                    contentElements.experience.innerHTML = `<p><strong>${signals.experience.title}</strong><br><a href="${signals.experience.link}" target="_blank" style="color: var(--secondary);">${signals.experience.linkText}</a></p>`;
+                    ["relevant", "attention", "knowing", "experience"].forEach(channel => {
+                        contentElements[channel].innerHTML = renderSignalHtml(signals[channel]);
+                    });
 
                     Object.values(checkElements).forEach(el => el.classList.add("visible"));
 
