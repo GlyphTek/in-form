@@ -140,7 +140,7 @@ body::before{
 }
 
 /* Make sure your container and screens sit safely above the canvas */
-.container, #landing-screen, #setup-screen {
+.container, #landing-screen, #setup-screen, #login-screen {
     position: relative;
     z-index: 3;
 }
@@ -478,7 +478,8 @@ footer{
    SETUP SCREEN
 =========================== */
 
-#setup-screen{
+#setup-screen,
+#login-screen{
 
     min-height:100vh;
 
@@ -561,7 +562,8 @@ footer{
         0 0 12px rgba(0,255,136,.1);
 }
 
-#start-btn{
+#start-btn,
+#login-btn{
 
     margin-top:12px;
 
@@ -587,7 +589,8 @@ footer{
     transition:.3s ease;
 }
 
-#start-btn:hover{
+#start-btn:hover,
+#login-btn:hover{
 
     box-shadow:
         0 0 20px rgba(0,255,136,.12);
@@ -865,12 +868,14 @@ button[type="button"]:hover{
 
 /* hide until OPEN clicked */
 
-#setup-screen{
+#setup-screen,
+#login-screen{
     display:none;
 }
 
 #landing-screen,
-#setup-screen{
+#setup-screen,
+#login-screen{
     transition:opacity .5s ease;
 }
 
@@ -1040,4 +1045,22 @@ button[type="button"]:hover{
 .status-icon.visible {
     opacity: 1;
     transform: scale(1);
+}
+
+/* ===========================
+   FORM MESSAGES
+=========================== */
+
+.setup-container .form-error {
+    min-height: 1.2em;
+    text-align: center;
+    color: #ff7a7a;
+    font-size: 0.7rem;
+    line-height: 1.5;
+}
+
+#login-btn:disabled,
+#start-btn:disabled {
+    opacity: 0.5;
+    cursor: wait;
 }

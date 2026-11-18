@@ -22,6 +22,29 @@ function causeCode(err) {
   return undefined;
 }
 
+// Plain-language text for the codes users actually run into. The raw code is
+// kept on the error (`code`) for logs; the message is what the UI shows.
+const NETWORK_MESSAGES = {
+  ENOTFOUND: "Could not look up that address",
+  EAI_AGAIN: "Could not look up that address",
+  ECONNREFUSED: "Connection refused",
+  ECONNRESET: "Connection was reset",
+  EPIPE: "Connection was reset",
+  ETIMEDOUT: "Connection timed out",
+  EHOSTUNREACH: "Host unreachable",
+  ENETUNREACH: "Network unreachable",
+  UND_ERR_SOCKET: "Connection was closed unexpectedly",
+  CERT_HAS_EXPIRED: "Security certificate has expired",
+  DEPTH_ZERO_SELF_SIGNED_CERT: "Security certificate is not trusted",
+  SELF_SIGNED_CERT_IN_CHAIN: "Security certificate is not trusted",
+  UNABLE_TO_VERIFY_LEAF_SIGNATURE: "Security certificate is not trusted",
+  ERR_TLS_CERT_ALTNAME_INVALID: "Security certificate does not match the site",
+};
+
+export function describeNetworkError(code) {
+  return NETWORK_MESSAGES[code] ?? "Network error";
+}
+
 function decodeBody(buffer, contentType) {
   const charset = /charset=["']?([\w-]+)/i.exec(contentType || "")?.[1] || "utf-8";
   try {
@@ -130,7 +153,8 @@ export function createSafeFetcher({
       if (causeCode(err) === "ESSRF_BLOCKED") {
         throw new IngestError("blocked", "Address is not allowed");
       }
-      throw new IngestError("network", causeCode(err) || err?.message || "Network error");
+      const code = causeCode(err);
+      throw new IngestError("network", describeNetworkError(code), { code });
     }
   }
 

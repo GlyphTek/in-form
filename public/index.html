@@ -35,6 +35,25 @@
 
 </div>
 
+<div id="login-screen">
+
+    <form id="login-form" class="setup-container" autocomplete="on">
+
+        <h1>SIGN IN</h1>
+
+        <label for="login-password">PASSWORD</label>
+        <input type="password" id="login-password" name="password" autocomplete="current-password" maxlength="1024" required>
+
+        <div id="login-error" class="form-error" role="alert"></div>
+
+        <button type="submit" id="login-btn">
+            SIGN IN
+        </button>
+
+    </form>
+
+</div>
+
 <div id="setup-screen">
 
     <div class="setup-container">
@@ -58,6 +77,8 @@
 </div>
 
 <ul id="platforms-list" class="sources-list"></ul>
+
+        <div id="setup-error" class="form-error" role="alert"></div>
 
         <button id="start-btn">
             START IN-FORM
@@ -173,6 +194,7 @@
                 <ul id="active-sites-list"></ul>
             </div>
             <button type="button" id="return-to-setup-btn" class="return-setup-btn">Return to Setup</button>
+            <button type="button" id="logout-btn" class="return-setup-btn" style="display: none;">Sign out</button>
         </div>
     </div>
 </a>

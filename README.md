@@ -48,6 +48,37 @@ outbound requests):
 npm run ingest -- "quantum computing" bbc.com https://example.com/feed.xml
 ```
 
+## Authentication and accounts
+
+One shared password unlocks one account (the dogfood phase; magic links or
+passkeys can replace the password later without changing the tables).
+
+- **`INFORM_PASSWORD`** (12+ characters) turns sign-in on. The server refuses to
+  start without it, so a forgotten variable can never leave a deployed instance
+  open. For local development only, `INFORM_AUTH=off` skips sign-in entirely:
+  every request acts as the owner, so never use it on a network-facing server.
+- Signing in sets an opaque session token in an `httpOnly`, `SameSite=Lax`
+  cookie (`Secure` over HTTPS). Only a SHA-256 hash of the token is stored, so a
+  leaked database cannot be replayed as live sessions. Sessions last 30 days;
+  signing out deletes the session on the server.
+- Login is rate limited and gives one generic failure message.
+- API writes are checked against the `Origin` header, and bodies must be JSON,
+  which closes off cross-site form posts. If a reverse proxy rewrites the `Host`
+  header, list your public origin in `ALLOWED_ORIGINS`.
+- Behind a proxy (Fly.io, nginx) also set `TRUST_PROXY=true` so rate limits see
+  real client IPs and cookies are marked `Secure`.
+
+`GET /api/auth/me` reports `{ authRequired, authenticated }`; `POST
+/api/auth/login` and `POST /api/auth/logout` do what they say. `GET/PUT
+/api/config` read and replace the account's sources and platforms; `PUT`
+rejects sources that could never be fetched, with a reason for each.
+
+The frontend works in three modes, detected on load: **local** (no server
+answers, e.g. static hosting: setup stays in the browser and signals show as
+unavailable), **sign-in required**, and **signed in** (setup follows you across
+devices). The first time a browser signs in to an empty account, the setup
+already saved in that browser is carried over once.
+
 ## Signals API
 
 `POST /api/signals/generate` with `{ "sources": ["..."], "platforms": ["..."] }`
@@ -79,4 +110,9 @@ it says so and shows empty channels.
 | `DATABASE_PATH` | `data/inform.db` | Point at a persistent volume in production |
 | `TRUST_PROXY` | `false` | Set `true` behind Fly.io or nginx so rate limits use real client IPs |
 | `RATE_LIMIT_PER_MINUTE` | `120` | Per client, API routes |
+| `INFORM_PASSWORD` | (required) | 12+ characters; or `INFORM_AUTH=off` for local development only |
+| `INFORM_USER_EMAIL` | `owner@in-form.local` | Identity of the single account |
+| `SESSION_DAYS` | `30` | Session lifetime |
+| `LOGIN_RATE_LIMIT_PER_MINUTE` | `8` | Per client |
+| `ALLOWED_ORIGINS` | (none) | Comma separated; only if a proxy rewrites `Host` |
 | `GENERATE_RATE_LIMIT_PER_MINUTE` | `12` | Per client, `/api/signals/generate` |

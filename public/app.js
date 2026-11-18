@@ -83,15 +83,16 @@ const appScreen = document.getElementById("app-screen");
 const openBtn = document.getElementById("open-btn");
 const startBtn = document.getElementById("start-btn");
 
-/* OPEN button: Landing -> Setup */
+/* OPEN button: Landing -> Setup (or Sign in, when the server asks for it) */
 if(openBtn){
-    openBtn.addEventListener("click", () => {
+    openBtn.addEventListener("click", async () => {
         landingScreen.style.opacity = "0";
-        setTimeout(() => {
-            landingScreen.style.display = "none";
-            setupScreen.style.display = "flex";
-            setupScreen.style.opacity = "1";
-        }, 500);
+        const [next] = await Promise.all([
+            prepareAfterLanding(),
+            new Promise(resolve => setTimeout(resolve, 500))
+        ]);
+        landingScreen.style.display = "none";
+        showScreen(next);
     });
 }
 
@@ -400,29 +401,274 @@ if (addPlatformBtn) {
 }
 
 /* ==========================
+   ACCOUNT: SIGN-IN AND STORED CONFIGURATION
+
+   Detected from GET /api/auth/me, the app runs in one of three modes:
+     local    no server answered (e.g. static hosting). Setup lives in this
+              browser only, exactly as before.
+     login    the server requires a password and we are not signed in.
+     account  signed in (or the server has sign-in switched off for local
+              development). Setup is also saved to the account, so it follows
+              you to other devices.
+========================== */
+
+const loginScreen = document.getElementById("login-screen");
+const loginForm = document.getElementById("login-form");
+const loginPassword = document.getElementById("login-password");
+const loginBtn = document.getElementById("login-btn");
+const loginError = document.getElementById("login-error");
+const setupError = document.getElementById("setup-error");
+const logoutBtn = document.getElementById("logout-btn");
+
+let authState = { available: false, authRequired: false, authenticated: false };
+
+class AccountError extends Error {
+    constructor(kind, message) {
+        super(message);
+        this.kind = kind;
+    }
+}
+
+async function apiFetch(path, options = {}, timeoutMs = 8000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(path, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+function jsonRequest(method, body) {
+    return {
+        method,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body)
+    };
+}
+
+async function refreshAuth() {
+    try {
+        const response = await apiFetch("/api/auth/me", { headers: { accept: "application/json" } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (typeof data.authenticated !== "boolean") throw new Error("not the IN-FORM API");
+        authState = {
+            available: true,
+            authRequired: Boolean(data.authRequired),
+            authenticated: data.authenticated
+        };
+    } catch {
+        authState = { available: false, authRequired: false, authenticated: false };
+    }
+    return authState;
+}
+
+function accountMode() {
+    if (!authState.available) return "local";
+    return authState.authenticated ? "account" : "login";
+}
+
+function saveLocalConfig(config) {
+    try {
+        localStorage.setItem("inform_config", JSON.stringify(config));
+    } catch (err) {
+        console.warn("Could not save setup on this device", err);
+    }
+}
+
+// Set once this browser has talked to the account, so an old copy left in
+// localStorage is never imported over (and resurrected into) a later setup.
+function accountSynced() {
+    try { return localStorage.getItem("inform_account_synced") === "1"; } catch { return false; }
+}
+
+function markAccountSynced() {
+    try { localStorage.setItem("inform_account_synced", "1"); } catch { /* optional */ }
+}
+
+async function fetchAccountConfig() {
+    const response = await apiFetch("/api/config");
+    if (response.status === 401) throw new AccountError("unauthorized", "Your session expired. Sign in again.");
+    if (!response.ok) throw new AccountError("http", `The server responded with ${response.status}.`);
+    return response.json();
+}
+
+async function saveAccountConfig(config) {
+    const response = await apiFetch("/api/config", jsonRequest("PUT", config));
+    if (response.status === 401) throw new AccountError("unauthorized", "Your session expired. Sign in again.");
+    if (response.status === 400) {
+        const data = await response.json().catch(() => ({}));
+        throw new AccountError("invalid", data.message || "Some of those sources can't be used.");
+    }
+    if (response.status === 429) throw new AccountError("rate_limited", "Too many requests. Wait a moment and try again.");
+    if (!response.ok) throw new AccountError("http", `The server responded with ${response.status}.`);
+    return response.json();
+}
+
+function showScreen(name) {
+    const screens = { landing: landingScreen, setup: setupScreen, login: loginScreen, app: appScreen };
+    const display = { landing: "flex", setup: "flex", login: "flex", app: "block" };
+    Object.entries(screens).forEach(([key, el]) => {
+        if (!el) return;
+        if (key === name) {
+            el.style.display = display[key];
+            el.style.opacity = "1";
+        } else {
+            el.style.display = "none";
+        }
+    });
+    if (name === "login" && loginPassword) loginPassword.focus();
+}
+
+function showLoginAgain(message) {
+    authState.authenticated = false;
+    if (loginError) loginError.textContent = message || "";
+    showScreen("login");
+}
+
+/**
+ * Work out what setup should start with and fill it in. In account mode the
+ * account is the source of truth; the first time a browser signs in to an empty
+ * account, the setup already saved in that browser is carried over.
+ * Returns the screen to show next: "setup" or "login".
+ */
+async function preloadSetup() {
+    let config = loadConfig();
+
+    if (accountMode() === "account") {
+        try {
+            const remote = await fetchAccountConfig();
+            const remoteHasData = remote.sources.length > 0 || remote.platforms.length > 0;
+            const localHasData = config.sources.length > 0 || config.platforms.length > 0;
+
+            if (!remoteHasData && localHasData && !accountSynced()) {
+                try {
+                    await saveAccountConfig(config);
+                } catch (err) {
+                    if (err.kind === "unauthorized") throw err;
+                    console.warn("Could not carry this device's setup to your account", err);
+                }
+            } else {
+                config = { sources: remote.sources, platforms: remote.platforms };
+            }
+            markAccountSynced();
+        } catch (err) {
+            if (err.kind === "unauthorized") {
+                showLoginAgain(err.message);
+                return "login";
+            }
+            console.warn("Could not load setup from your account; using this device's copy", err);
+        }
+    }
+
+    userSources = [...config.sources];
+    userPlatforms = [...config.platforms];
+    renderSources();
+    renderPlatforms();
+    if (setupError) setupError.textContent = "";
+    return "setup";
+}
+
+async function prepareAfterLanding() {
+    await refreshAuth();
+    if (accountMode() === "login") return "login";
+    return preloadSetup();
+}
+
+if (loginForm) {
+    loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const password = loginPassword.value;
+        if (!password) return;
+
+        loginError.textContent = "";
+        loginBtn.disabled = true;
+        try {
+            const response = await apiFetch("/api/auth/login", jsonRequest("POST", { password }));
+            if (response.status === 401) {
+                loginError.textContent = "Incorrect password.";
+                return;
+            }
+            if (response.status === 429) {
+                loginError.textContent = "Too many attempts. Wait a minute and try again.";
+                return;
+            }
+            if (!response.ok) {
+                loginError.textContent = "Could not sign in. Try again.";
+                return;
+            }
+            loginPassword.value = "";
+            await refreshAuth();
+            showScreen(await preloadSetup());
+        } catch {
+            loginError.textContent = "Could not reach the IN-FORM server.";
+        } finally {
+            loginBtn.disabled = false;
+        }
+    });
+}
+
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            const response = await apiFetch("/api/auth/logout", { method: "POST" });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            window.location.reload();
+        } catch {
+            logoutBtn.textContent = "Sign out failed. Try again";
+        }
+    });
+}
+
+/* ==========================
    START BUTTON – SAVE FULL CONFIG
 ========================== */
 
 if (startBtn) {
-    startBtn.addEventListener("click", (e) => {
+    startBtn.addEventListener("click", async (e) => {
         e.preventDefault();
+        if (startBtn.disabled) return;
 
+        if (setupError) setupError.textContent = "";
         const userConfig = {
             sources: [...userSources],
             platforms: [...userPlatforms]
         };
 
-        localStorage.setItem("inform_config", JSON.stringify(userConfig));
+        let syncNote = "";
+        if (accountMode() === "account") {
+            startBtn.disabled = true;
+            try {
+                await saveAccountConfig(userConfig);
+                markAccountSynced();
+            } catch (err) {
+                if (err.kind === "unauthorized") {
+                    showLoginAgain(err.message);
+                    return;
+                }
+                if (err.kind === "invalid" || err.kind === "rate_limited") {
+                    // Stay on setup so the user can fix it; nothing has changed.
+                    setupError.textContent = err.message;
+                    return;
+                }
+                syncNote = " • not saved to your account";
+            } finally {
+                startBtn.disabled = false;
+            }
+        }
+
+        saveLocalConfig(userConfig);
 
         setupScreen.style.opacity = "0";
         setTimeout(() => {
-            setupScreen.style.display = "none";
-            appScreen.style.display = "block";
-            appScreen.style.opacity = "1";
+            showScreen("app");
 
             const taglineEl = document.querySelector(".tagline");
             if (taglineEl) {
-                taglineEl.textContent = "Powered by RAKE";
+                taglineEl.textContent = `Powered by RAKE${syncNote}`;
             }
         }, 500);
     });
@@ -542,6 +788,9 @@ async function requestSignals(config) {
             signal: controller.signal
         });
 
+        if (response.status === 401) {
+            throw new SignalsError("unauthorized", "Your session expired. Sign in again.");
+        }
         if (response.status === 429) {
             throw new SignalsError("rate_limited", "Too many requests. Wait a moment and try again.");
         }
@@ -607,6 +856,11 @@ function renderActiveSources(config, result) {
     sourcesPanelOpen = false;
     activeSourcesPanel.style.display = "none";
     activeSourcesToggle.textContent = "Active Sources ▾";
+
+    // Only offer "Sign out" when there is actually a sign-in to end.
+    if (logoutBtn) {
+        logoutBtn.style.display = authState.authRequired && authState.authenticated ? "block" : "none";
+    }
 
     // Platforms are link-outs only.
     const platforms = result ? result.platforms || [] : config.platforms.map(name => ({ name, url: null }));
@@ -716,6 +970,11 @@ async function runTifa() {
         result = await requestSignals(config);
     } catch (err) {
         console.warn("Signal generation failed", err);
+        if (err.kind === "unauthorized") {
+            isGenerating = false;
+            showLoginAgain(err.message);
+            return;
+        }
         showUnavailable(config, err.message || "Something went wrong.");
         return;
     }
@@ -751,21 +1010,12 @@ if (returnToSetupBtn) {
         e.preventDefault();
         e.stopPropagation();
 
-        // Hide app screen, show setup screen
+        // Hide app screen, show setup screen with the current setup loaded
+        // (from the account when signed in, otherwise from this browser).
         appScreen.style.opacity = "0";
-        setTimeout(() => {
-            appScreen.style.display = "none";
-            setupScreen.style.display = "flex";
-            setupScreen.style.opacity = "1";
-
-            // Load existing config into arrays so user can edit them
-            const savedConfig = JSON.parse(localStorage.getItem("inform_config"));
-            if (savedConfig) {
-                userSources = savedConfig.sources || [];
-                userPlatforms = savedConfig.platforms || [];
-                renderSources();
-                renderPlatforms();
-            }
-        }, 500);
+        Promise.all([
+            preloadSetup(),
+            new Promise(resolve => setTimeout(resolve, 500))
+        ]).then(([next]) => showScreen(next));
     });
 }

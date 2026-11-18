@@ -5,7 +5,8 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
-import { createSafeFetcher } from "../../server/ingest/fetcher.js";
+import net from "node:net";
+import { createSafeFetcher, describeNetworkError } from "../../server/ingest/fetcher.js";
 import { fixture } from "../helpers.js";
 
 const RSS = fixture("rss2.xml");
@@ -189,10 +190,36 @@ test("honours the charset declared in Content-Type", async () => {
   await fetcher.close();
 });
 
-test("connection failures are reported as network errors", async () => {
+test("connection failures are reported as network errors in plain words", async () => {
+  // Bind and release a port so it is guaranteed closed (low ports like 1 are
+  // on the fetch spec's blocked list and never reach the network at all).
+  const probe = net.createServer();
+  await new Promise((resolve) => probe.listen(0, "127.0.0.1", resolve));
+  const closedPort = probe.address().port;
+  await new Promise((resolve) => probe.close(resolve));
+
   const fetcher = relaxed();
-  await assert.rejects(() => fetcher("http://127.0.0.1:1/"), (e) => e.kind === "network");
+  await assert.rejects(
+    () => fetcher(`http://127.0.0.1:${closedPort}/`),
+    (e) => e.kind === "network" && e.message === "Connection refused" && e.code === "ECONNREFUSED",
+  );
   await fetcher.close();
+});
+
+test("an unresolvable hostname says so instead of showing a raw error code", async () => {
+  const fetcher = createSafeFetcher({ timeoutMs: 4000 });
+  await assert.rejects(
+    () => fetcher("http://does-not-exist.invalid/feed"),
+    (e) => e.kind === "network" && /Could not look up that address/.test(e.message) && !/ENOTFOUND|EAI_AGAIN/.test(e.message),
+  );
+  await fetcher.close();
+});
+
+test("describeNetworkError maps known codes and falls back safely", () => {
+  assert.equal(describeNetworkError("ECONNRESET"), "Connection was reset");
+  assert.equal(describeNetworkError("CERT_HAS_EXPIRED"), "Security certificate has expired");
+  assert.equal(describeNetworkError("SOMETHING_NEW"), "Network error");
+  assert.equal(describeNetworkError(undefined), "Network error");
 });
 
 test("hostnames connect successfully through the vetted DNS lookup", async () => {
