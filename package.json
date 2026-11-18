@@ -1,0 +1,21 @@
+{
+  "name": "in-form",
+  "version": "0.1.0",
+  "description": "IN-FORM personal orientation tool",
+  "scripts": {
+    "test": "node --test",
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "migrate": "node server/migrate.js"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@fastify/static": "^10.1.11",
+    "better-sqlite3": "^13.2.0",
+    "fastify": "^5.12.8"
+  }
+}

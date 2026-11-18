@@ -1,0 +1,101 @@
+**Primer: Next Steps for IN-FORM**
+
+### 1. Current State (as of the code you shared)
+
+IN-FORM is a well-designed conceptual prototype with a strong aesthetic and a clear four-channel orientation model (RAKE: Relevant / Attention / Knowing / Experience).  
+
+It successfully:
+- Delivers a distinctive visual and interaction language
+- Lets the user declare their sources and platforms
+- Generates a daily “signal set” using a mixture of live RSS pulls and a local fallback engine
+- Persists basic configuration in localStorage
+
+It does **not** yet:
+- Deliver reliably better orientation than the user’s existing feeds
+- Learn from the user’s actual behaviour or outcomes
+- Survive without third-party dependencies
+- Scale beyond a single-device, single-user experiment
+
+This is a solid Phase 0 / early Phase 1 artifact. The next work must move it from “interesting prototype” to “tool that measurably improves a person’s daily signal-to-noise ratio.”
+
+---
+
+### 2. Critical Gaps (ranked by impact)
+
+| Priority | Gap | Why it matters |
+|----------|-----|----------------|
+| P0 | Fragile data layer | Entire live path depends on `rss2json` + Google News RSS. This will break, rate-limit, or change without notice. |
+| P0 | No real personalization or feedback loop | Signals are generated from static heuristics + keyword scoring. The system never learns whether a signal was actually useful. |
+| P1 | No durable backend or multi-device state | Everything lives in localStorage. No history, no sync, no recovery, no analytics. |
+| P1 | Classification is too shallow | Current scoring cannot distinguish high-signal from high-volume or noisy sources over time. |
+| P2 | No closed-loop value measurement | There is no mechanism to know whether users feel clearer, make better decisions, or waste less attention. |
+| P2 | Distribution & retention surface is almost non-existent | Beautiful landing → setup → generate is not enough to create habitual use. |
+
+---
+
+### 3. Recommended Next Steps (phased)
+
+#### Phase 1 — Harden the Foundation (4–8 weeks of focused work)
+Goal: Make the core loop reliable and independent of brittle third parties.
+
+1. **Replace the RSS proxy**
+   - Move to a self-hosted or controllable feed ingestion layer (e.g. a small Node/Python service using `rss-parser`, `feedparser`, or direct site APIs where available).
+   - Add proper error handling, caching, and fallback so the UI never shows empty or broken states.
+   - Support both RSS/Atom and simple HTML scraping for sites that lack feeds.
+
+2. **Introduce a minimal backend**
+   - Simple auth (email magic link or passkey is enough at this stage).
+   - Persistent storage of user sources, platforms, signal history, and basic preference weights.
+   - This immediately enables multi-device use and history.
+
+3. **Make the RAKE classifier stateful**
+   - Store which signals the user opens, dismisses, or marks as useful/not useful.
+   - Begin simple Bayesian or embedding-based re-ranking so the system improves for that specific user.
+
+#### Phase 2 — Close the Value Loop (next 6–10 weeks)
+Goal: Prove the tool actually improves orientation.
+
+1. Add lightweight daily/weekly reflection prompts (“Which of today’s signals proved useful?” / “What did you act on?”).
+2. Surface a simple personal signal-quality score or “clarity trend” over time.
+3. Allow users to pin, archive, or suppress sources and individual signals.
+4. Instrument basic analytics (anonymized): generation frequency, open rates by channel, retention after day 1 / day 7 / day 30.
+
+#### Phase 3 — Distribution & Habit Formation
+Only after Phase 1 and early Phase 2 data exist.
+
+- Decide on the primary retention surface (browser extension? progressive web app with notifications? daily email digest? Telegram/Discord bot?).
+- The current full-screen web app is elegant but easy to abandon. Habit tools usually need to meet the user where they already are.
+- Consider a very constrained “morning briefing” mode that can be consumed in <90 seconds.
+
+---
+
+### 4. What Success Looks Like (minimum viable proof)
+
+Within 90 days of starting Phase 1 you should be able to answer:
+
+- Do returning users generate signals more than twice a week?
+- Do they rate a meaningful percentage of signals as useful?
+- Do they report (even in free text) that their days feel clearer or less reactive?
+- Can the system run for a month without external API breakage affecting the majority of users?
+
+If the answer to most of these is still “no” or “unknown,” the project remains a prototype regardless of how polished the interface becomes.
+
+---
+
+### 5. Hard Constraints & Realistic Framing
+
+- **Capital & time**: Building a reliable personal information layer is infrastructure work. Aesthetic and conceptual strength will not compensate for data fragility.
+- **Competition**: Users already have extremely strong default attention sinks (X, YouTube, newsletters, group chats). IN-FORM must demonstrably reduce noise or increase agency, not merely rearrange it.
+- **The “cap” dynamic**: Systemic friction against tools that improve individual orientation is real (attention economics, platform incentives, status games). However, most projects die from ordinary engineering and distribution failure long before they encounter any deliberate external suppression. Solve the ordinary failures first; the rest becomes clearer.
+
+---
+
+### Immediate Recommended Actions
+
+1. Freeze further visual polish.
+2. Stand up a minimal backend + controllable feed ingestion (even if only for yourself and a few test users).
+3. Instrument the four channels so you can see what people actually click and return to.
+4. Run a tight 2–4 week personal dogfooding + small private test with the hardened version.
+5. Only then decide whether the RAKE model produces enough differentiated value to justify further investment.
+
+The conceptual core is coherent. The next required work is unglamorous reliability, learning, and proof of value. That is the difference between a striking prototype and a tool that can actually change how someone moves through their days.

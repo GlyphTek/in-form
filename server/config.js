@@ -1,0 +1,30 @@
+// Central place for runtime configuration. Everything comes from environment
+// variables with safe local-development defaults.
+
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+function readPort(value, fallback) {
+  if (value === undefined || value === "") return fallback;
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 0 || port > 65535) {
+    throw new Error(`Invalid PORT: ${value}`);
+  }
+  return port;
+}
+
+export function loadConfig(env = process.env) {
+  return {
+    rootDir,
+    env: env.NODE_ENV || "development",
+    port: readPort(env.PORT, 3000),
+    // Bind to loopback by default; set HOST=0.0.0.0 deliberately when deploying.
+    host: env.HOST || "127.0.0.1",
+    logLevel: env.LOG_LEVEL || "info",
+    databasePath: path.resolve(rootDir, env.DATABASE_PATH || "data/inform.db"),
+    publicDir: path.join(rootDir, "public"),
+    migrationsDir: path.join(rootDir, "server", "migrations"),
+  };
+}
