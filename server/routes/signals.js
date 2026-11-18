@@ -55,7 +55,9 @@ export default async function signalRoutes(app, { ingestor, store, generateOptio
           status: result.status,
           sources: result.sources.length,
           failed: result.sources.filter((s) => s.status === "error").length,
-          filled: Object.values(result.channels).filter(Boolean).length,
+          filled: Object.values(result.channels).filter((items) => items.length > 0).length,
+          items: Object.values(result.channels).reduce((n, items) => n + items.length, 0),
+          perChannel: Object.fromEntries(Object.entries(result.channels).map(([k, v]) => [k, v.length])),
         },
         "signals generated",
       );
