@@ -93,8 +93,9 @@ returns:
 - `status`: `ok`, `partial`, `unavailable` or `no_sources`
 - `channels`: `relevant`, `attention`, `knowing`, `experience`; each is
   an array of up to 3 items, best first, each
-  `{ title, link, linkText, source, published, score (1-10), reason }`; an
+  `{ id, title, link, linkText, source, published, score (1-10), reason, useful }`; an
   empty array means nothing suitable exists
+- `hiddenDismissed`: how many items were left out because you dismissed them
 - `sources`: per-source health (`ok` / `stale` / `error`, item count, error)
 - `platforms`: link-outs only (`url` is `null` when the name is not a known
   platform or domain)
@@ -107,6 +108,22 @@ rather than being padded. A card's bar shows the score of its best item. The end
 
 The frontend never shows placeholder signals. If the server cannot be reached
 it says so and shows empty channels.
+
+## Stored signals and feedback
+
+Every item shown is stored per account (table `signals`, migration 004), keyed
+by its normalised link, so the same story on another day is the same row. Each
+item in a response carries that row's `id`.
+
+- `POST /api/signals/:id/open` records that the link was opened (`204`).
+- `PUT /api/signals/:id/state` with `{ "dismissed": bool, "useful": bool }`
+  (either or both). Dismissed items are removed before ranking on later runs, so
+  other items fill their slots; `false` undoes either one.
+- An id that is not yours answers `404`, the same as one that does not exist.
+
+In the app each item has **Useful** and **Dismiss** buttons, and opening a link
+is recorded. A dismissed item shows an **Undo** until the next run. A failed
+save is shown on the item. This data is what Step 6 will learn from.
 
 ## Configuration
 

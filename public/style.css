@@ -374,7 +374,7 @@ details[open].card{
     font-size:.8rem;
 }
 
-.content p.signal-item + p.signal-item{
+.signal-item + .signal-item{
     margin-top:14px;
     padding-top:14px;
     border-top:1px solid rgba(255,255,255,.05);
@@ -1069,4 +1069,38 @@ button[type="button"]:hover{
 #start-btn:disabled {
     opacity: 0.5;
     cursor: wait;
+}
+
+
+/* Signal actions */
+.signal-actions{
+    display:flex;
+    gap:8px;
+    margin-top:8px;
+}
+
+.signal-btn{
+    font-size:.65rem;
+    padding:4px 10px;
+}
+
+.signal-btn[aria-pressed="true"]{
+    color:var(--accent);
+    border-color:rgba(0,255,136,.35);
+    background:rgba(0,255,136,.08);
+}
+
+.signal-btn:disabled{
+    opacity:.5;
+    cursor:default;
+}
+
+.signal-dismissed p{
+    color:#8a8a8a;
+}
+
+.signal-error{
+    margin-top:6px;
+    color:#ff8888;
+    font-size:.7rem;
 }

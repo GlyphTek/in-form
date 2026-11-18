@@ -725,10 +725,27 @@ if (activeSourcesToggle) {
 
 let isGenerating = false;
 
+// Signals currently on screen, by server id, so Dismiss can be undone and
+// "Useful" can toggle without asking the server what it looked like.
+const signalsOnScreen = new Map();
+
 function renderSignalHtml(signal) {
-    return `<p class="signal-item"><strong>${escapeHtml(signal.title)}</strong><br>` +
+    signalsOnScreen.set(signal.id, signal);
+    return `<div class="signal-item" data-signal-id="${Number(signal.id)}">` +
+        `<p><strong>${escapeHtml(signal.title)}</strong><br>` +
         `<a href="${escapeHtml(safeUrl(signal.link))}" target="_blank" rel="noopener noreferrer" ` +
-        `style="color: var(--secondary);">${escapeHtml(signal.linkText)}</a></p>`;
+        `data-signal-link style="color: var(--secondary);">${escapeHtml(signal.linkText)}</a></p>` +
+        `<div class="signal-actions">` +
+        `<button type="button" class="signal-btn" data-action="useful" aria-pressed="${signal.useful ? "true" : "false"}">` +
+        `${signal.useful ? "Useful ✓" : "Useful"}</button>` +
+        `<button type="button" class="signal-btn" data-action="dismiss">Dismiss</button>` +
+        `</div></div>`;
+}
+
+function renderDismissedHtml(id) {
+    return `<div class="signal-item signal-dismissed" data-signal-id="${Number(id)}">` +
+        `<p>Dismissed. It won't appear in future runs. ` +
+        `<button type="button" class="signal-btn" data-action="undo">Undo</button></p></div>`;
 }
 
 function renderChannelHtml(signals) {
@@ -823,11 +840,16 @@ async function requestSignals(config) {
     }
 }
 
+function withHidden(text, result) {
+    const n = Number(result.hiddenDismissed) || 0;
+    return n ? `${text} · ${n} dismissed hidden` : text;
+}
+
 function subtitleFor(result) {
     const sources = result.sources || [];
     switch (result.status) {
         case "ok":
-            return "RAKE Generation complete";
+            return withHidden("RAKE Generation complete", result);
         case "partial": {
             const failed = sources.filter(s => s.status === "error").length;
             return failed
@@ -926,6 +948,7 @@ function showUnavailable(config, message) {
 }
 
 function showSignals(config, result) {
+    signalsOnScreen.clear();
     const targets = {};
     CHANNELS.forEach(channel => {
         // The bar shows the strength of the channel's best item.
@@ -956,6 +979,89 @@ function showSignals(config, result) {
         isGenerating = false;
     }, 90);
 }
+
+/* ==========================
+   SIGNAL ACTIONS
+   Open, Useful and Dismiss are saved to the account so later runs can learn
+   from them. A failed save is shown, never silently dropped.
+========================== */
+
+async function saveSignalState(id, patch) {
+    const response = await apiFetch(`/api/signals/${id}/state`, jsonRequest("PUT", patch));
+    if (response.status === 401) throw new SignalsError("unauthorized", "Your session expired. Sign in again.");
+    if (!response.ok) throw new SignalsError("http", `The server responded with ${response.status}.`);
+    return response.json();
+}
+
+function recordOpen(id) {
+    // Fire and forget: opening the link must never wait on, or fail because of, this.
+    apiFetch(`/api/signals/${id}/open`, { method: "POST", keepalive: true }).catch(() => {});
+}
+
+function showActionError(itemEl, message) {
+    let note = itemEl.querySelector(".signal-error");
+    if (!note) {
+        note = document.createElement("p");
+        note.className = "signal-error";
+        note.setAttribute("role", "status");
+        itemEl.appendChild(note);
+    }
+    note.textContent = message;
+}
+
+async function handleSignalAction(button) {
+    const itemEl = button.closest(".signal-item");
+    const id = Number(itemEl?.dataset.signalId);
+    const signal = signalsOnScreen.get(id);
+    if (!signal) return;
+    const action = button.dataset.action;
+    button.disabled = true;
+
+    try {
+        // Re-rendering replaces the buttons, so put keyboard focus on the
+        // control that now stands in for the one just used.
+        let focusAction = action;
+        if (action === "useful") {
+            const state = await saveSignalState(id, { useful: !signal.useful });
+            signal.useful = state.useful;
+            itemEl.outerHTML = renderSignalHtml(signal);
+        } else if (action === "dismiss") {
+            await saveSignalState(id, { dismissed: true });
+            itemEl.outerHTML = renderDismissedHtml(id);
+            focusAction = "undo";
+        } else if (action === "undo") {
+            await saveSignalState(id, { dismissed: false });
+            itemEl.outerHTML = renderSignalHtml(signal);
+            focusAction = "dismiss";
+        }
+        document.querySelector(`.signal-item[data-signal-id="${id}"] [data-action="${focusAction}"]`)?.focus();
+    } catch (err) {
+        button.disabled = false;
+        if (err.kind === "unauthorized") {
+            showLoginAgain(err.message);
+            return;
+        }
+        showActionError(itemEl, "Couldn't save that. Check your connection and try again.");
+    }
+}
+
+CHANNELS.forEach(channel => {
+    const container = contentElements[channel];
+    container.addEventListener("click", (e) => {
+        const button = e.target.closest("button[data-action]");
+        if (button && container.contains(button)) {
+            handleSignalAction(button);
+            return;
+        }
+        const link = e.target.closest("a[data-signal-link]");
+        if (link) recordOpen(Number(link.closest(".signal-item")?.dataset.signalId));
+    });
+    // Middle-click opens in a new tab without a normal click event.
+    container.addEventListener("auxclick", (e) => {
+        const link = e.target.closest("a[data-signal-link]");
+        if (link && e.button === 1) recordOpen(Number(link.closest(".signal-item")?.dataset.signalId));
+    });
+});
 
 async function runTifa() {
     if (isGenerating) return;
