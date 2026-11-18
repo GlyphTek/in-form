@@ -120,5 +120,6 @@ it says so and shows empty channels.
 | `INFORM_USER_EMAIL` | `owner@in-form.local` | Identity of the single account |
 | `SESSION_DAYS` | `30` | Session lifetime |
 | `LOGIN_RATE_LIMIT_PER_MINUTE` | `8` | Per client |
+| `NEWS_WINDOW` | `30d` | How far back keyword searches look (`7d`, `30d`, `12h`) |
 | `ALLOWED_ORIGINS` | (none) | Comma separated; only if a proxy rewrites `Host` |
 | `GENERATE_RATE_LIMIT_PER_MINUTE` | `12` | Per client, `/api/signals/generate` |

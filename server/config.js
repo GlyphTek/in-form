@@ -51,6 +51,8 @@ export function loadConfig(env = process.env) {
     // Set TRUST_PROXY=true behind Fly.io / nginx so rate limits see real client IPs.
     trustProxy: env.TRUST_PROXY === "true",
     // Requests per minute per client: general, and for the expensive generate call.
+    // Google News search window for keyword sources, e.g. 7d, 30d, 12h.
+    newsWindow: /^\d{1,3}[hd]$/.test(env.NEWS_WINDOW ?? "") ? env.NEWS_WINDOW : "30d",
     rateLimitPerMinute: Number(env.RATE_LIMIT_PER_MINUTE) || 120,
     generateRateLimitPerMinute: Number(env.GENERATE_RATE_LIMIT_PER_MINUTE) || 12,
     databasePath: path.resolve(rootDir, env.DATABASE_PATH || "data/inform.db"),

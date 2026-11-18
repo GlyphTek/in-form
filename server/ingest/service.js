@@ -31,7 +31,7 @@ export function createIngestor({
   backoffBaseMs = 60_000,
   backoffMaxMs = 6 * 3600_000,
   maxItemsPerFeed = 30,
-  news = { hl: "en-US", gl: "US", ceid: "US:en", when: "7d" },
+  news = { hl: "en-US", gl: "US", ceid: "US:en", when: "30d" },
   now = Date.now,
   log = NOOP_LOG,
 }) {

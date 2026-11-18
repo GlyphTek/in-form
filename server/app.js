@@ -95,7 +95,7 @@ export async function buildApp(config, { db: providedDb, ingestor: providedInges
   let ingestor = providedIngestor;
   if (!ingestor) {
     fetcher = createSafeFetcher();
-    ingestor = createIngestor({ db, fetcher, log: app.log });
+    ingestor = createIngestor({ db, fetcher, log: app.log, news: { hl: "en-US", gl: "US", ceid: "US:en", when: config.newsWindow } });
   }
   app.addHook("onClose", async () => {
     await fetcher?.close();

@@ -34,6 +34,7 @@ for (const input of inputs) {
   const t0 = Date.now();
   const result = await ingestor.getItems(input);
   console.log(`\n${result.status === "ok" ? "✓" : "✗"} ${input}  [${detected.kind} → ${result.feedUrl ?? "unresolved"}]  ${Date.now() - t0}ms`);
+  console.log(`  ${result.items.length} item(s)`);
   if (result.error) console.log(`  error: ${result.error.kind}: ${result.error.message}`);
   for (const item of result.items.slice(0, 3)) {
     console.log(`  - ${item.published?.slice(0, 10) ?? "undated   "}  ${item.title}\n    ${item.link}`);

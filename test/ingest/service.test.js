@@ -46,7 +46,7 @@ test("keywords resolve to a news search feed without any network call", async ()
   const env = makeEnv();
   const r = await env.ingestor.resolve("quantum computing");
   assert.equal(r.kind, "keyword");
-  assert.match(r.feedUrl, /^https:\/\/news\.google\.com\/rss\/search\?q=quantum\+computing\+when%3A7d&/);
+  assert.match(r.feedUrl, /^https:\/\/news\.google\.com\/rss\/search\?q=quantum\+computing\+when%3A30d&/);
   assert.equal(env.calls.length, 0);
 });
 
