@@ -4,7 +4,9 @@ Personal orientation tool. See `docs/PROJECT_BRIEF.md` for the roadmap.
 
 ## Run locally
 
-Requires Node 20+.
+Requires Node 22.13 or newer. SQLite is Node's built-in `node:sqlite`, so there is
+nothing to compile (no Python or C++ tools needed on Windows). Node prints an
+"experimental" notice for it at startup; that is expected.
 
 ```sh
 npm install

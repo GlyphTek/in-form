@@ -1,14 +1,10 @@
 # syntax=docker/dockerfile:1
 
-# --- Install production dependencies (better-sqlite3 is a native module) ------
+# --- Install production dependencies (all pure JavaScript; SQLite is built into Node) ---
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-# Prebuilt binaries are used when available; the toolchain is only a fallback.
-RUN apt-get update \
- && apt-get install -y --no-install-recommends python3 make g++ \
- && rm -rf /var/lib/apt/lists/* \
- && npm ci --omit=dev
+RUN npm ci --omit=dev
 
 # --- Runtime image --------------------------------------------------------------
 FROM node:22-bookworm-slim

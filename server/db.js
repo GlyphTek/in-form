@@ -7,13 +7,48 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
+
+// Node's built-in SQLite (no native build step, so installs work on Windows
+// without a C++ toolchain). This thin subclass keeps the small API the rest of
+// the code uses: pragma(), transaction(), and an `open` flag.
+class Db extends DatabaseSync {
+  #depth = 0;
+
+  get open() {
+    return this.isOpen;
+  }
+
+  pragma(statement) {
+    this.exec(`PRAGMA ${statement}`);
+  }
+
+  // Returns a function that runs `fn` atomically; nested calls use savepoints.
+  transaction(fn) {
+    return (...args) => {
+      const nested = this.#depth > 0;
+      const name = `sp_${this.#depth}`;
+      this.exec(nested ? `SAVEPOINT ${name}` : "BEGIN IMMEDIATE");
+      this.#depth++;
+      try {
+        const result = fn(...args);
+        this.#depth--;
+        this.exec(nested ? `RELEASE ${name}` : "COMMIT");
+        return result;
+      } catch (err) {
+        this.#depth--;
+        this.exec(nested ? `ROLLBACK TO ${name}; RELEASE ${name}` : "ROLLBACK");
+        throw err;
+      }
+    };
+  }
+}
 
 export function openDatabase(databasePath) {
   if (databasePath !== ":memory:") {
     fs.mkdirSync(path.dirname(databasePath), { recursive: true });
   }
-  const db = new Database(databasePath);
+  const db = new Db(databasePath);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   db.pragma("busy_timeout = 5000");
