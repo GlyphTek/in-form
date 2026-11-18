@@ -16,6 +16,10 @@ npm test
 The server applies pending SQL migrations (`server/migrations/`) on startup.
 `npm run migrate` applies them without starting the server.
 
+## Deploying
+
+See `docs/DEPLOY.md` (Fly.io with a volume for the database; GitHub Pages cannot run the server).
+
 ## Layout
 
 - `public/` — the frontend (static; served by the same Fastify process)
