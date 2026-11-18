@@ -118,7 +118,7 @@ export async function buildApp(config, { db: providedDb, ingestor: providedInges
   // --- API -----------------------------------------------------------------
 
   await app.register(authRoutes, { auth });
-  await app.register(configRoutes, { store });
+  await app.register(configRoutes, { store, signals });
   await app.register(signalRoutes, { ingestor, store, signals, generateOptions });
 
   app.get("/api/health", async (request, reply) => {

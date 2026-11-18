@@ -123,6 +123,12 @@ item in a response carries that row's `id`.
   ranking on later runs, so pressing again gives the next batch (up to 3 per
   channel) from what is left, never the same items. When everything has been
   seen, the app says "Nothing new" instead of repeating or inventing content.
+- **Starting a source fresh.** Saving a setup that drops a source forgets what
+  was shown from it (case and outer spaces are ignored). Add the same topic,
+  site or URL back later and everything it still serves counts as new again.
+  What you get back is limited to what the source itself still publishes; IN-FORM
+  does not archive content. Opens, Useful marks and dismissals are kept, and a
+  dismissed item stays hidden. Saving without removing a source changes nothing.
   Dismissing is a stronger "not wanted" signal for learning; undoing a dismissal
   does not make the item new again.
 - An id that is not yours answers `404`, the same as one that does not exist.

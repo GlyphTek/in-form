@@ -244,3 +244,71 @@ test("signal actions require sign-in when auth is on", async () => {
   assert.equal((await put(app, "/api/signals/1/state", { useful: true })).statusCode, 401);
   await app.close();
 });
+
+// --- Removing a source and adding it back starts it fresh -------------------------
+
+const setSources = (app, sources) => app.inject({ method: "PUT", url: "/api/config", payload: { sources, platforms: [] } });
+const generateStored = async (app) => (await app.inject({ method: "POST", url: "/api/signals/generate", payload: {} })).json();
+const shownCount = (r) => Object.values(r.channels).flat().length;
+
+test("removing a source and adding it back brings its items back as new", async () => {
+  const app = await makeApp();
+  await setSources(app, ["weather"]);
+  assert.equal(shownCount(await generateStored(app)), 1);
+  const seen = await generateStored(app);
+  assert.equal(shownCount(seen), 0);
+  assert.deepEqual(seen.hidden, { seen: 1, dismissed: 0 });
+
+  await setSources(app, []);
+  await setSources(app, ["weather"]);
+  const fresh = await generateStored(app);
+  assert.equal(shownCount(fresh), 1, "the source starts fresh");
+  assert.deepEqual(fresh.hidden, { seen: 0, dismissed: 0 });
+  await app.close();
+});
+
+test("saving without removing a source keeps its history", async () => {
+  const app = await makeApp();
+  await setSources(app, ["weather", "other"]);
+  await generateStored(app);
+  await setSources(app, ["other", "weather", "third"]); // reordered, one added, none removed
+  const next = await generateStored(app);
+  assert.equal(next.hidden.seen, 2, "weather and other are still seen");
+  await app.close();
+});
+
+test("only the removed source starts fresh", async () => {
+  const app = await makeApp();
+  await setSources(app, ["weather", "other"]);
+  await generateStored(app);
+  await setSources(app, ["other"]); // weather removed
+  await setSources(app, ["weather", "other"]); // weather back
+  const next = await generateStored(app);
+  assert.deepEqual(next.channels.attention.map((i) => i.source), ["weather"]);
+  assert.equal(next.hidden.seen, 1, "other is still seen");
+  await app.close();
+});
+
+test("a dismissed item stays hidden after its source is removed and added back", async () => {
+  const app = await makeApp();
+  await setSources(app, ["weather"]);
+  const { id } = (await generateStored(app)).channels.attention[0];
+  await put(app, `/api/signals/${id}/state`, { dismissed: true });
+  await setSources(app, []);
+  await setSources(app, ["weather"]);
+  const next = await generateStored(app);
+  assert.equal(shownCount(next), 0);
+  assert.deepEqual(next.hidden, { seen: 0, dismissed: 1 });
+  await app.close();
+});
+
+test("a rejected save does not forget anything", async () => {
+  const app = await makeApp();
+  await setSources(app, ["weather"]);
+  await generateStored(app);
+  const bad = await setSources(app, ["javascript:alert(1)"]);
+  assert.equal(bad.statusCode, 400);
+  assert.equal(shownCount(await generateStored(app)), 0);
+  assert.equal((await generateStored(app)).hidden.seen, 1);
+  await app.close();
+});

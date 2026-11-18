@@ -26,7 +26,7 @@ const putSchema = {
   },
 };
 
-export default async function configRoutes(app, { store }) {
+export default async function configRoutes(app, { store, signals }) {
   app.get("/api/config", { preHandler: app.requireAuth }, async (request, reply) => {
     reply.header("cache-control", "no-store");
     return store.get(request.user.id);
@@ -54,6 +54,14 @@ export default async function configRoutes(app, { store }) {
       });
     }
 
-    return store.replace(request.user.id, { sources, platforms });
+    // A source this save drops is forgotten: adding it back later starts it fresh,
+    // so everything it still serves counts as new again.
+    return app.db.transaction(() => {
+      const kept = new Set(inputs.map((i) => i.toLowerCase()));
+      const removed = store.get(request.user.id).sources.filter((i) => !kept.has(i.toLowerCase()));
+      const saved = store.replace(request.user.id, { sources, platforms });
+      if (removed.length) signals.forgetSources(request.user.id, removed);
+      return saved;
+    })();
   });
 }

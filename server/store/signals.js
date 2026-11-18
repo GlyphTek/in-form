@@ -11,13 +11,18 @@ export function itemKey(item) {
 }
 
 export function createSignalStore(db) {
-  const selectAllKeys = db.prepare("SELECT item_key, dismissed_at IS NOT NULL AS dismissed FROM signals WHERE user_id = ?");
+  // Cleared rows (their source was removed) no longer count as seen, unless dismissed.
+  const selectAllKeys = db.prepare(`
+    SELECT item_key, dismissed_at IS NOT NULL AS dismissed FROM signals
+    WHERE user_id = ? AND (cleared_at IS NULL OR dismissed_at IS NOT NULL)`);
+  const selectSources = db.prepare("SELECT DISTINCT source FROM signals WHERE user_id = ? AND cleared_at IS NULL");
+  const clearSource = db.prepare("UPDATE signals SET cleared_at = ? WHERE user_id = ? AND source = ? AND cleared_at IS NULL");
   const selectByKey = db.prepare("SELECT id, useful_at FROM signals WHERE user_id = ? AND item_key = ?");
   const insertSignal = db.prepare(`
     INSERT INTO signals (user_id, item_key, title, link, source, published, channel, score, first_seen_at, last_seen_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const updateSeen = db.prepare(`
-    UPDATE signals SET channel = ?, score = ?, last_seen_at = ?, shown_count = shown_count + 1
+    UPDATE signals SET channel = ?, score = ?, source = ?, last_seen_at = ?, shown_count = shown_count + 1, cleared_at = NULL
     WHERE id = ? AND user_id = ?`);
   const selectOne = db.prepare("SELECT id, opened_at, dismissed_at, useful_at FROM signals WHERE id = ? AND user_id = ?");
   const markOpened = db.prepare(`
@@ -47,7 +52,7 @@ export function createSignalStore(db) {
         const key = itemKey(item);
         const existing = selectByKey.get(userId, key);
         if (existing) {
-          updateSeen.run(channel, item.score, nowIso, existing.id, userId);
+          updateSeen.run(channel, item.score, item.source, nowIso, existing.id, userId);
           return { ...item, id: existing.id, useful: existing.useful_at !== null };
         }
         const { lastInsertRowid } = insertSignal.run(
@@ -59,6 +64,19 @@ export function createSignalStore(db) {
     }
     return out;
   });
+
+  /**
+   * Forget what was shown from these sources (compared case-insensitively), so
+   * their items count as new again. Returns how many items were cleared.
+   */
+  function forgetSources(userId, inputs, nowIso = new Date().toISOString()) {
+    const wanted = new Set(inputs.map((i) => String(i).trim().toLowerCase()));
+    let cleared = 0;
+    for (const { source } of selectSources.all(userId)) {
+      if (wanted.has(source.trim().toLowerCase())) cleared += Number(clearSource.run(nowIso, userId, source).changes);
+    }
+    return cleared;
+  }
 
   /** Returns false when the id is not this user's. */
   function recordOpen(userId, id, nowIso = new Date().toISOString()) {
@@ -80,5 +98,5 @@ export function createSignalStore(db) {
     return { id, dismissed: now.dismissed_at !== null, useful: now.useful_at !== null };
   }
 
-  return { seenKeys, recordShown, recordOpen, updateState };
+  return { seenKeys, forgetSources, recordShown, recordOpen, updateState };
 }

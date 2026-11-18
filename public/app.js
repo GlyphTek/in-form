@@ -852,7 +852,7 @@ function withHidden(text, result, { canReplace = true } = {}) {
     const dismissed = Number(h.dismissed) || 0;
     const nothingShown = CHANNELS.every(channel => !(result.channels[channel] || []).length);
     if (canReplace && nothingShown && seen + dismissed > 0) {
-        return "Nothing new: you've seen everything your sources have right now";
+        return "Nothing new right now. To see a source's items again, remove it in setup and add it back.";
     }
     const parts = [];
     if (seen) parts.push(`${seen} already seen`);

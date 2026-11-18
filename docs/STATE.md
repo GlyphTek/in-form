@@ -15,6 +15,9 @@ Short handover for a fresh session. Update it after each step. The roadmap is in
   Experience, Knowing) fill first; Relevant takes the best of the rest.
 - Each item is shown once per account. Pressing TIFA again gives the next
   batch; when everything is seen the app says "Nothing new".
+- Removing a source in setup forgets what was shown from it; adding it back
+  starts it fresh (limited to what the source still serves). Dismissed items
+  stay hidden. History rows are kept for learning (`cleared_at`).
 - No placeholder content, ever. Empty or failed states are stated plainly.
 - Hosting target: Fly.io, one machine, SQLite on a volume (`docs/DEPLOY.md`).
 - Working style: small steps, summary after each, wait for confirmation.
@@ -42,8 +45,9 @@ filling when sources carry alert-style headlines.
   (candidates: hack, attack, leak, scam, security, threat).
 - An empty card does not yet say why.
 - Stored signals are never pruned, and "seen" is permanent: there is no way to
-  see an item again once it has gone (a possible "show seen again" or a time
-  window if it proves too strict).
+  see an item again once it has gone (removing and re-adding a source is the way
+  back; a "Seen" history list or a time window are options if that proves too
+  strict).
 - An item counts as seen when the server sends it, even if the browser never
   displayed it (for example the connection dropped mid-response).
 - Feed health is shared across users; needs per-user scoping (Step 7).
