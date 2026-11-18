@@ -3,15 +3,22 @@
 
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
+import rateLimit from "@fastify/rate-limit";
 import { openDatabase, runMigrations } from "./db.js";
+import { createSafeFetcher } from "./ingest/fetcher.js";
+import { createIngestor } from "./ingest/service.js";
+import signalRoutes from "./routes/signals.js";
 
-export async function buildApp(config, { db: providedDb } = {}) {
+export async function buildApp(config, { db: providedDb, ingestor: providedIngestor, generateOptions } = {}) {
   const app = Fastify({
     logger: config.logLevel === "silent" ? false : { level: config.logLevel },
-    // Fly.io and most VPS setups sit behind a proxy; trust it for client IPs
-    // only if explicitly enabled later. Off by default.
-    trustProxy: false,
+    // Behind Fly.io / nginx set TRUST_PROXY=true so client IPs (and therefore
+    // rate limits) are the real ones. Off by default so it cannot be spoofed.
+    trustProxy: config.trustProxy ?? false,
     bodyLimit: 64 * 1024,
+    // Strict validation: reject wrong types and unknown fields instead of
+    // silently coercing or stripping them.
+    ajv: { customOptions: { coerceTypes: false, removeAdditional: false, useDefaults: true, allErrors: false } },
   });
 
   const db = providedDb ?? openDatabase(config.databasePath);
@@ -32,7 +39,33 @@ export async function buildApp(config, { db: providedDb } = {}) {
     reply.header("X-Frame-Options", "DENY");
   });
 
+  // --- Ingestion + rate limiting ---------------------------------------------
+
+  let fetcher = null;
+  let ingestor = providedIngestor;
+  if (!ingestor) {
+    fetcher = createSafeFetcher();
+    ingestor = createIngestor({ db, fetcher, log: app.log });
+  }
+  app.addHook("onClose", async () => {
+    await fetcher?.close();
+  });
+
+  await app.register(rateLimit, {
+    global: true,
+    max: config.rateLimitPerMinute ?? 120,
+    timeWindow: "1 minute",
+    allowList: (request) => !request.url.startsWith("/api/"), // static assets are not limited
+    errorResponseBuilder: (request, context) => ({
+      statusCode: 429,
+      error: "rate_limited",
+      message: `Too many requests. Try again in ${Math.ceil(context.ttl / 1000)}s.`,
+    }),
+  });
+
   // --- API -----------------------------------------------------------------
+
+  await app.register(signalRoutes, { ingestor, generateOptions });
 
   app.get("/api/health", async (request, reply) => {
     let database = "ok";
@@ -68,7 +101,7 @@ export async function buildApp(config, { db: providedDb } = {}) {
     const status = error.statusCode && error.statusCode < 500 ? error.statusCode : 500;
     if (status >= 500) request.log.error({ err: error }, "unhandled error");
     reply.code(status).send({
-      error: status >= 500 ? "internal_error" : error.code || "bad_request",
+      error: status >= 500 ? "internal_error" : error.code || error.error || "bad_request",
       message: status >= 500 ? "Something went wrong." : error.message,
     });
   });

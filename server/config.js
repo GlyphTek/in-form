@@ -23,6 +23,11 @@ export function loadConfig(env = process.env) {
     // Bind to loopback by default; set HOST=0.0.0.0 deliberately when deploying.
     host: env.HOST || "127.0.0.1",
     logLevel: env.LOG_LEVEL || "info",
+    // Set TRUST_PROXY=true behind Fly.io / nginx so rate limits see real client IPs.
+    trustProxy: env.TRUST_PROXY === "true",
+    // Requests per minute per client: general, and for the expensive generate call.
+    rateLimitPerMinute: Number(env.RATE_LIMIT_PER_MINUTE) || 120,
+    generateRateLimitPerMinute: Number(env.GENERATE_RATE_LIMIT_PER_MINUTE) || 12,
     databasePath: path.resolve(rootDir, env.DATABASE_PATH || "data/inform.db"),
     publicDir: path.join(rootDir, "public"),
     migrationsDir: path.join(rootDir, "server", "migrations"),

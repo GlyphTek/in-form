@@ -1,0 +1,118 @@
+// Stateless, rule-based channel assignment for the four RAKE channels.
+//
+// Input:  candidates = [{ title, link, published, summary, source, sourceKind }]
+// Output: { relevant, attention, knowing, experience } where each value is
+//         { ...candidate, score (0-10), reason } or null when nothing suitable
+//         exists. A channel with nothing honest to show stays empty; we never
+//         pad it with the closest-looking item.
+//
+// How it works
+//   1. Every candidate gets a base score from recency (half-life 24h). Undated
+//      items get a modest fixed score so they can still appear but not dominate.
+//   2. Lexicon rules say which channel a candidate suits. Attention, Experience
+//      and Knowing each need a lexicon match; Relevant is the default channel
+//      for the best remaining item from the user's own sources.
+//   3. Channels are filled most-specific first. An item appears in at most one
+//      channel, and ties prefer a source that has not been used yet.
+//
+// This is deliberately small and explainable. Step 6 adds per-user learned
+// weights on top of the same structure.
+
+export const CHANNELS = ["relevant", "attention", "knowing", "experience"];
+
+const HALF_LIFE_HOURS = 24;
+const UNDATED_RECENCY = 0.25;
+const SOURCE_REPEAT_PENALTY = 0.8;
+const LEXICON_BONUS = { attention: 0.5, experience: 0.4, knowing: 0.4 };
+
+// Whole-word, case-insensitive. Kept short and unambiguous on purpose.
+export const LEXICONS = {
+  attention: [
+    "alert", "warning", "warnings", "outage", "breach", "recall", "deadline", "urgent", "emergency",
+    "advisory", "vulnerability", "cve", "evacuation", "evacuate", "closure", "closed", "delayed",
+    "cancelled", "canceled", "suspended", "storm", "flood", "flooding", "cyclone", "earthquake",
+    "tsunami", "shutdown", "ban", "banned", "lawsuit", "fine", "fined", "deprecated", "sunset",
+  ],
+  knowing: [
+    "research", "study", "studies", "analysis", "paper", "explained", "explainer", "guide",
+    "findings", "review", "report", "science", "scientists", "researchers", "evidence",
+    "history", "why", "how", "understanding", "deep dive", "tutorial", "preprint",
+  ],
+  experience: [
+    "event", "events", "live", "festival", "launch", "webinar", "conference", "workshop",
+    "exhibition", "concert", "meetup", "tickets", "join", "livestream", "premiere", "tour",
+    "open day", "hackathon", "demo", "showcase", "summit", "register",
+  ],
+};
+
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const MATCHERS = Object.fromEntries(
+  Object.entries(LEXICONS).map(([channel, words]) => [
+    channel,
+    new RegExp(`(?<![\\p{L}\\p{N}])(?:${words.map(escapeRe).join("|")})(?![\\p{L}\\p{N}])`, "giu"),
+  ]),
+);
+
+/** How many distinct lexicon words for `channel` appear in the title (and summary at half weight). */
+export function lexiconHits(channel, candidate) {
+  const count = (text) => new Set((text || "").toLowerCase().match(MATCHERS[channel]) ?? []).size;
+  return count(candidate.title) + count(candidate.summary) * 0.5;
+}
+
+export function recencyScore(published, now) {
+  if (!published) return UNDATED_RECENCY;
+  const ageHours = Math.max(0, (now - Date.parse(published)) / 3_600_000);
+  return 0.5 ** (ageHours / HALF_LIFE_HOURS);
+}
+
+function baseScore(candidate, now) {
+  return recencyScore(candidate.published, now);
+}
+
+function toTen(score) {
+  // base is 0-1; with a lexicon bonus it can reach ~1.5. Map to 1-10.
+  return Math.max(1, Math.min(10, Math.round(score * 10 * (10 / 15) + 1)));
+}
+
+/**
+ * Assign at most one candidate to each channel.
+ * @param {Array} candidates
+ * @param {{ now?: number }} options
+ */
+export function assignChannels(candidates, { now = Date.now() } = {}) {
+  const result = { relevant: null, attention: null, knowing: null, experience: null };
+  const pool = candidates.map((c) => ({ c, base: baseScore(c, now) }));
+  const usedSources = new Map();
+  const taken = new Set();
+
+  function pick(channel, scoreOf) {
+    let best = null;
+    for (const entry of pool) {
+      if (taken.has(entry)) continue;
+      const raw = scoreOf(entry);
+      if (raw == null) continue;
+      const repeats = usedSources.get(entry.c.source) ?? 0;
+      const adjusted = raw * SOURCE_REPEAT_PENALTY ** repeats;
+      if (!best || adjusted > best.adjusted) best = { entry, raw, adjusted };
+    }
+    if (!best) return;
+    taken.add(best.entry);
+    usedSources.set(best.entry.c.source, (usedSources.get(best.entry.c.source) ?? 0) + 1);
+    result[channel] = {
+      ...best.entry.c,
+      score: toTen(best.raw),
+      reason: channel === "relevant" ? "best recent item from your sources" : `matches ${channel} cues`,
+    };
+  }
+
+  // Most specific channels first so they get first claim on matching items.
+  for (const channel of ["attention", "experience", "knowing"]) {
+    pick(channel, ({ c, base }) => {
+      const hits = lexiconHits(channel, c);
+      return hits > 0 ? base + LEXICON_BONUS[channel] * Math.min(hits, 2) / 2 : null;
+    });
+  }
+  pick("relevant", ({ base }) => base);
+
+  return result;
+}
