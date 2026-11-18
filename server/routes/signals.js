@@ -9,6 +9,7 @@
 // requests (400), missing sign-in (401) and rate limiting (429) are errors.
 
 import { generateSignals } from "../signals/generate.js";
+import { itemKey } from "../store/signals.js";
 import { MAX_PLATFORMS, MAX_SOURCES, normalizeList } from "../store/config.js";
 
 const bodySchema = {
@@ -28,7 +29,21 @@ const bodySchema = {
   },
 };
 
-export default async function signalRoutes(app, { ingestor, store, generateOptions = {} }) {
+const idParams = {
+  type: "object",
+  // URL params are strings (type coercion is off app-wide); validate digits, convert below.
+  properties: { id: { type: "string", pattern: "^[1-9][0-9]{0,9}$" } },
+  required: ["id"],
+};
+
+const stateBody = {
+  type: "object",
+  additionalProperties: false,
+  minProperties: 1,
+  properties: { dismissed: { type: "boolean" }, useful: { type: "boolean" } },
+};
+
+export default async function signalRoutes(app, { ingestor, store, signals, generateOptions = {} }) {
   app.post(
     "/api/signals/generate",
     {
@@ -42,13 +57,17 @@ export default async function signalRoutes(app, { ingestor, store, generateOptio
       const sources = normalizeList(body.sources ?? stored.sources);
       const platforms = normalizeList(body.platforms ?? stored.platforms);
 
+      const dismissed = signals.dismissedKeys(request.user.id);
       const result = await generateSignals({
         ingestor,
         sources,
         platforms,
+        exclude: (item) => dismissed.has(itemKey(item)),
         log: request.log,
         ...generateOptions,
       });
+      // Store what is being shown now so each item has an id to act on.
+      result.channels = signals.recordShown(request.user.id, result.channels);
 
       request.log.info(
         {
@@ -56,6 +75,7 @@ export default async function signalRoutes(app, { ingestor, store, generateOptio
           sources: result.sources.length,
           failed: result.sources.filter((s) => s.status === "error").length,
           filled: Object.values(result.channels).filter((items) => items.length > 0).length,
+          hidden: result.hiddenDismissed,
           items: Object.values(result.channels).reduce((n, items) => n + items.length, 0),
           perChannel: Object.fromEntries(Object.entries(result.channels).map(([k, v]) => [k, v.length])),
         },
@@ -63,6 +83,27 @@ export default async function signalRoutes(app, { ingestor, store, generateOptio
       );
       reply.header("cache-control", "no-store");
       return result;
+    },
+  );
+
+  // The user opened a signal's link.
+  app.post("/api/signals/:id/open", { schema: { params: idParams }, preHandler: app.requireAuth }, async (request, reply) => {
+    if (!signals.recordOpen(request.user.id, Number(request.params.id))) {
+      return reply.code(404).send({ statusCode: 404, error: "not_found", message: "Signal not found." });
+    }
+    return reply.code(204).send();
+  });
+
+  // Dismiss (hide from future runs) and/or mark useful. Idempotent, and
+  // `false` undoes either one.
+  app.put(
+    "/api/signals/:id/state",
+    { schema: { params: idParams, body: stateBody }, preHandler: app.requireAuth },
+    async (request, reply) => {
+      const state = signals.updateState(request.user.id, Number(request.params.id), request.body);
+      if (!state) return reply.code(404).send({ statusCode: 404, error: "not_found", message: "Signal not found." });
+      reply.header("cache-control", "no-store");
+      return state;
     },
   );
 

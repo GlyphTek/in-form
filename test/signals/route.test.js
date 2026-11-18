@@ -113,3 +113,74 @@ test("the removed global health endpoint is not exposed", async () => {
   assert.equal((await app.inject({ url: "/api/sources/health" })).statusCode, 404);
   await app.close();
 });
+
+// --- Stored signals: ids, open, dismiss, useful ---------------------------------
+
+const put = (app, url, payload) => app.inject({ method: "PUT", url, payload });
+
+test("generated items carry ids and a useful flag", async () => {
+  const app = await makeApp();
+  const body = (await post(app, { sources: ["weather"] })).json();
+  const first = body.channels.attention[0];
+  assert.ok(Number.isInteger(first.id) && first.id > 0);
+  assert.equal(first.useful, false);
+  assert.equal(body.hiddenDismissed, 0);
+  await app.close();
+});
+
+test("a dismissed item is left out of the next run and undo brings it back", async () => {
+  const app = await makeApp();
+  const first = (await post(app, { sources: ["weather"] })).json();
+  const { id } = first.channels.attention[0];
+
+  const dismissed = await put(app, `/api/signals/${id}/state`, { dismissed: true });
+  assert.equal(dismissed.statusCode, 200);
+  assert.deepEqual(dismissed.json(), { id, dismissed: true, useful: false });
+
+  const second = (await post(app, { sources: ["weather"] })).json();
+  assert.equal(Object.values(second.channels).flat().length, 0);
+  assert.equal(second.hiddenDismissed, 1);
+
+  await put(app, `/api/signals/${id}/state`, { dismissed: false });
+  const third = (await post(app, { sources: ["weather"] })).json();
+  assert.equal(third.channels.attention[0].id, id);
+  assert.equal(third.hiddenDismissed, 0);
+  await app.close();
+});
+
+test("marking useful is remembered on the next run", async () => {
+  const app = await makeApp();
+  const { id } = (await post(app, { sources: ["weather"] })).json().channels.attention[0];
+  await put(app, `/api/signals/${id}/state`, { useful: true });
+  const next = (await post(app, { sources: ["weather"] })).json();
+  assert.equal(next.channels.attention[0].useful, true);
+  await app.close();
+});
+
+test("opening a signal is recorded and answers 204", async () => {
+  const app = await makeApp();
+  const { id } = (await post(app, { sources: ["weather"] })).json().channels.attention[0];
+  const res = await app.inject({ method: "POST", url: `/api/signals/${id}/open` });
+  assert.equal(res.statusCode, 204);
+  const row = app.db.prepare("SELECT open_count FROM signals WHERE id = ?").get(id);
+  assert.equal(row.open_count, 1);
+  await app.close();
+});
+
+test("unknown ids give 404 and malformed requests give 400", async () => {
+  const app = await makeApp();
+  assert.equal((await app.inject({ method: "POST", url: "/api/signals/999/open" })).statusCode, 404);
+  assert.equal((await put(app, "/api/signals/999/state", { useful: true })).statusCode, 404);
+  assert.equal((await put(app, "/api/signals/abc/state", { useful: true })).statusCode, 400);
+  assert.equal((await put(app, "/api/signals/1/state", {})).statusCode, 400);
+  assert.equal((await put(app, "/api/signals/1/state", { dismissed: "yes" })).statusCode, 400);
+  assert.equal((await put(app, "/api/signals/1/state", { other: true })).statusCode, 400);
+  await app.close();
+});
+
+test("signal actions require sign-in when auth is on", async () => {
+  const app = await makeApp({ auth: { mode: "password", password: "a long enough passphrase" } });
+  assert.equal((await app.inject({ method: "POST", url: "/api/signals/1/open" })).statusCode, 401);
+  assert.equal((await put(app, "/api/signals/1/state", { useful: true })).statusCode, 401);
+  await app.close();
+});

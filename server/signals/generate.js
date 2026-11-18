@@ -9,6 +9,7 @@
 //   channels { relevant|attention|knowing|experience: [ {title, linkText, link,
 //              source, published, score (1-10), reason}, ... up to 3, best
 //              first ] }; an empty array means nothing suitable
+//   hiddenDismissed  how many items were left out because the user dismissed them
 //   sources  per-source health so the UI can say exactly what is broken
 //   platforms link-outs only; never turned into fake items
 
@@ -91,6 +92,7 @@ export async function generateSignals({
   now = Date.now,
   concurrency = 5,
   deadlineMs = 25_000,
+  exclude = () => false,
   log,
 }) {
   const startedAt = now();
@@ -101,6 +103,7 @@ export async function generateSignals({
       status: "no_sources",
       generatedAt: new Date(startedAt).toISOString(),
       channels: Object.fromEntries(CHANNELS.map((c) => [c, []])),
+      hiddenDismissed: 0,
       sources: [],
       platforms: platformLinks,
     };
@@ -123,8 +126,14 @@ export async function generateSignals({
   });
 
   const candidates = [];
+  let excluded = 0;
   const sourceReports = fetched.map((result) => {
     for (const item of result.items.slice(0, MAX_ITEMS_PER_SOURCE)) {
+      // Items the user dismissed are dropped before ranking so others fill the slots.
+      if (exclude(item)) {
+        excluded++;
+        continue;
+      }
       candidates.push({
         title: item.title,
         link: item.link,
@@ -168,6 +177,7 @@ export async function generateSignals({
     status,
     generatedAt: new Date(startedAt).toISOString(),
     channels,
+    hiddenDismissed: excluded,
     sources: sourceReports,
     platforms: platformLinks,
   };

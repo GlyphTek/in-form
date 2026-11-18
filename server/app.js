@@ -9,6 +9,7 @@ import { openDatabase, runMigrations } from "./db.js";
 import { createSafeFetcher } from "./ingest/fetcher.js";
 import { createIngestor } from "./ingest/service.js";
 import { createAuth, SESSION_COOKIE } from "./auth/service.js";
+import { createSignalStore } from "./store/signals.js";
 import { createConfigStore } from "./store/config.js";
 import authRoutes from "./routes/auth.js";
 import configRoutes from "./routes/config.js";
@@ -36,6 +37,7 @@ export async function buildApp(config, { db: providedDb, ingestor: providedInges
   // forgotten INFORM_PASSWORD can never leave a deployed instance open.
   const auth = createAuth({ db, config });
   const store = createConfigStore(db);
+  const signals = createSignalStore(db);
 
   app.decorate("config", config);
   app.decorate("db", db);
@@ -117,7 +119,7 @@ export async function buildApp(config, { db: providedDb, ingestor: providedInges
 
   await app.register(authRoutes, { auth });
   await app.register(configRoutes, { store });
-  await app.register(signalRoutes, { ingestor, store, generateOptions });
+  await app.register(signalRoutes, { ingestor, store, signals, generateOptions });
 
   app.get("/api/health", async (request, reply) => {
     let database = "ok";
