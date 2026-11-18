@@ -95,7 +95,8 @@ returns:
   an array of up to 3 items, best first, each
   `{ id, title, link, linkText, source, published, score (1-10), reason, useful }`; an
   empty array means nothing suitable exists
-- `hiddenDismissed`: how many items were left out because you dismissed them
+- `hidden`: `{ seen, dismissed }`, how many items were left out because you were
+  already shown them, or dismissed them
 - `sources`: per-source health (`ok` / `stale` / `error`, item count, error)
 - `platforms`: link-outs only (`url` is `null` when the name is not a known
   platform or domain)
@@ -117,8 +118,13 @@ item in a response carries that row's `id`.
 
 - `POST /api/signals/:id/open` records that the link was opened (`204`).
 - `PUT /api/signals/:id/state` with `{ "dismissed": bool, "useful": bool }`
-  (either or both). Dismissed items are removed before ranking on later runs, so
-  other items fill their slots; `false` undoes either one.
+  (either or both); `false` undoes either one.
+- **Each item is offered once.** Anything already shown to you is removed before
+  ranking on later runs, so pressing again gives the next batch (up to 3 per
+  channel) from what is left, never the same items. When everything has been
+  seen, the app says "Nothing new" instead of repeating or inventing content.
+  Dismissing is a stronger "not wanted" signal for learning; undoing a dismissal
+  does not make the item new again.
 - An id that is not yours answers `404`, the same as one that does not exist.
 
 In the app each item has **Useful** and **Dismiss** buttons, and opening a link

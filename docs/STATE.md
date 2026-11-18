@@ -13,6 +13,8 @@ Short handover for a fresh session. Update it after each step. The roadmap is in
   link-outs and mild hints only; they never produce items.
 - Up to 3 items per RAKE channel, best first. Cue-based channels (Attention,
   Experience, Knowing) fill first; Relevant takes the best of the rest.
+- Each item is shown once per account. Pressing TIFA again gives the next
+  batch; when everything is seen the app says "Nothing new".
 - No placeholder content, ever. Empty or failed states are stated plainly.
 - Hosting target: Fly.io, one machine, SQLite on a volume (`docs/DEPLOY.md`).
 - Working style: small steps, summary after each, wait for confirmation.
@@ -39,7 +41,11 @@ filling when sources carry alert-style headlines.
 - Attention needs alert-style words; the word list may be too narrow
   (candidates: hack, attack, leak, scam, security, threat).
 - An empty card does not yet say why.
-- Stored signals are never pruned.
+- Stored signals are never pruned, and "seen" is permanent: there is no way to
+  see an item again once it has gone (a possible "show seen again" or a time
+  window if it proves too strict).
+- An item counts as seen when the server sends it, even if the browser never
+  displayed it (for example the connection dropped mid-response).
 - Feed health is shared across users; needs per-user scoping (Step 7).
 
 ## Next

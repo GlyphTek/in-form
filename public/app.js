@@ -769,6 +769,7 @@ function getBarString(fillCount) {
 const CHANNELS = ["relevant", "attention", "knowing", "experience"];
 const EMPTY_BAR = "░░░░░░░░░░";
 const EMPTY_CHANNEL_TEXT = "Nothing in this channel right now.";
+const EMPTY_NEW_TEXT = "Nothing new in this channel. You've already seen what your sources have right now.";
 const UNAVAILABLE_TEXT =
     "Live signals are unavailable right now. Nothing is shown rather than placeholder content.";
 
@@ -840,9 +841,23 @@ async function requestSignals(config) {
     }
 }
 
-function withHidden(text, result) {
-    const n = Number(result.hiddenDismissed) || 0;
-    return n ? `${text} · ${n} dismissed hidden` : text;
+function hiddenCount(result) {
+    const h = result.hidden || {};
+    return (Number(h.seen) || 0) + (Number(h.dismissed) || 0);
+}
+
+function withHidden(text, result, { canReplace = true } = {}) {
+    const h = result.hidden || {};
+    const seen = Number(h.seen) || 0;
+    const dismissed = Number(h.dismissed) || 0;
+    const nothingShown = CHANNELS.every(channel => !(result.channels[channel] || []).length);
+    if (canReplace && nothingShown && seen + dismissed > 0) {
+        return "Nothing new: you've seen everything your sources have right now";
+    }
+    const parts = [];
+    if (seen) parts.push(`${seen} already seen`);
+    if (dismissed) parts.push(`${dismissed} dismissed`);
+    return parts.length ? `${text} · ${parts.join(", ")} hidden` : text;
 }
 
 function subtitleFor(result) {
@@ -852,9 +867,9 @@ function subtitleFor(result) {
             return withHidden("RAKE Generation complete", result);
         case "partial": {
             const failed = sources.filter(s => s.status === "error").length;
-            return failed
+            return withHidden(failed
                 ? `Generated, but ${failed} of ${sources.length} sources are unavailable`
-                : "Generated, with some sources showing older data";
+                : "Generated, with some sources showing older data", result, { canReplace: false });
         }
         case "unavailable":
             return "No live signals: your sources could not be reached";
@@ -970,7 +985,7 @@ function showSignals(config, result) {
             const signals = result.channels[channel] || [];
             contentElements[channel].innerHTML = signals.length
                 ? renderChannelHtml(signals)
-                : `<p>${escapeHtml(EMPTY_CHANNEL_TEXT)}</p>`;
+                : `<p>${escapeHtml(hiddenCount(result) ? EMPTY_NEW_TEXT : EMPTY_CHANNEL_TEXT)}</p>`;
             if (signals.length) checkElements[channel].classList.add("visible");
         });
 

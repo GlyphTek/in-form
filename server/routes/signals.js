@@ -57,12 +57,14 @@ export default async function signalRoutes(app, { ingestor, store, signals, gene
       const sources = normalizeList(body.sources ?? stored.sources);
       const platforms = normalizeList(body.platforms ?? stored.platforms);
 
-      const dismissed = signals.dismissedKeys(request.user.id);
+      // Anything already shown to this user is left out, so pressing again gives
+      // the next batch instead of the same items.
+      const seen = signals.seenKeys(request.user.id);
       const result = await generateSignals({
         ingestor,
         sources,
         platforms,
-        exclude: (item) => dismissed.has(itemKey(item)),
+        exclude: (item) => seen.get(itemKey(item)) ?? false,
         log: request.log,
         ...generateOptions,
       });
@@ -75,7 +77,7 @@ export default async function signalRoutes(app, { ingestor, store, signals, gene
           sources: result.sources.length,
           failed: result.sources.filter((s) => s.status === "error").length,
           filled: Object.values(result.channels).filter((items) => items.length > 0).length,
-          hidden: result.hiddenDismissed,
+          hidden: result.hidden,
           items: Object.values(result.channels).reduce((n, items) => n + items.length, 0),
           perChannel: Object.fromEntries(Object.entries(result.channels).map(([k, v]) => [k, v.length])),
         },

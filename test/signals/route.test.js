@@ -124,36 +124,96 @@ test("generated items carry ids and a useful flag", async () => {
   const first = body.channels.attention[0];
   assert.ok(Number.isInteger(first.id) && first.id > 0);
   assert.equal(first.useful, false);
-  assert.equal(body.hiddenDismissed, 0);
+  assert.deepEqual(body.hidden, { seen: 0, dismissed: 0 });
   await app.close();
 });
 
-test("a dismissed item is left out of the next run and undo brings it back", async () => {
+test("an item already shown is left out of the next run", async () => {
   const app = await makeApp();
   const first = (await post(app, { sources: ["weather"] })).json();
-  const { id } = first.channels.attention[0];
-
-  const dismissed = await put(app, `/api/signals/${id}/state`, { dismissed: true });
-  assert.equal(dismissed.statusCode, 200);
-  assert.deepEqual(dismissed.json(), { id, dismissed: true, useful: false });
+  assert.equal(first.channels.attention.length, 1);
 
   const second = (await post(app, { sources: ["weather"] })).json();
   assert.equal(Object.values(second.channels).flat().length, 0);
-  assert.equal(second.hiddenDismissed, 1);
-
-  await put(app, `/api/signals/${id}/state`, { dismissed: false });
-  const third = (await post(app, { sources: ["weather"] })).json();
-  assert.equal(third.channels.attention[0].id, id);
-  assert.equal(third.hiddenDismissed, 0);
+  assert.deepEqual(second.hidden, { seen: 1, dismissed: 0 });
+  assert.equal(second.status, "ok", "being fully seen is not a failure");
   await app.close();
 });
 
-test("marking useful is remembered on the next run", async () => {
+test("dismissed items are counted separately, and undoing keeps them seen", async () => {
   const app = await makeApp();
   const { id } = (await post(app, { sources: ["weather"] })).json().channels.attention[0];
-  await put(app, `/api/signals/${id}/state`, { useful: true });
-  const next = (await post(app, { sources: ["weather"] })).json();
-  assert.equal(next.channels.attention[0].useful, true);
+  const dismissed = await put(app, `/api/signals/${id}/state`, { dismissed: true });
+  assert.deepEqual(dismissed.json(), { id, dismissed: true, useful: false });
+
+  const second = (await post(app, { sources: ["weather"] })).json();
+  assert.deepEqual(second.hidden, { seen: 0, dismissed: 1 });
+
+  await put(app, `/api/signals/${id}/state`, { dismissed: false });
+  const third = (await post(app, { sources: ["weather"] })).json();
+  assert.equal(Object.values(third.channels).flat().length, 0);
+  assert.deepEqual(third.hidden, { seen: 1, dismissed: 0 });
+  await app.close();
+});
+
+test("pressing again gives the next three per channel, never repeating an item", async () => {
+  const many = {
+    async getItems(input) {
+      const items = Array.from({ length: 8 }, (_, n) => ({
+        ...item(`Storm warning number ${n + 1}`),
+        published: new Date(NOW - (n + 1) * 3_600_000).toISOString(),
+      }));
+      return { input, kind: "keyword", status: "ok", items, fetchedAt: null, error: null };
+    },
+    listHealth: () => [],
+  };
+  const app = await buildApp(testConfig(), { db: openDatabase(":memory:"), ingestor: many });
+  const titles = (r) => Object.values(r.channels).flat().map((i) => i.title);
+
+  const first = (await post(app, { sources: ["x"] })).json();
+  assert.deepEqual(first.channels.attention.map((i) => i.title), [
+    "Storm warning number 1", "Storm warning number 2", "Storm warning number 3",
+  ]);
+
+  // Relevant takes the best of what is left over, so the first run used 6 of the 8.
+  assert.deepEqual(first.channels.relevant.map((i) => i.title), [
+    "Storm warning number 4", "Storm warning number 5", "Storm warning number 6",
+  ]);
+
+  const second = (await post(app, { sources: ["x"] })).json();
+  assert.deepEqual(second.channels.attention.map((i) => i.title), ["Storm warning number 7", "Storm warning number 8"]);
+  assert.equal(second.channels.relevant.length, 0);
+  assert.equal(second.hidden.seen, 6);
+
+  const all = [...titles(first), ...titles(second)];
+  assert.equal(new Set(all).size, all.length, "nothing is shown twice");
+
+  const third = (await post(app, { sources: ["x"] })).json();
+  assert.equal(titles(third).length, 0);
+  assert.equal(third.hidden.seen, 8);
+  await app.close();
+});
+
+test("the same story from two sources is shown once", async () => {
+  const same = {
+    async getItems(input) {
+      return { input, kind: "keyword", status: "ok", items: [item("Storm warning everywhere")], fetchedAt: null, error: null };
+    },
+    listHealth: () => [],
+  };
+  const app = await buildApp(testConfig(), { db: openDatabase(":memory:"), ingestor: same });
+  const r = (await post(app, { sources: ["a", "b"] })).json();
+  assert.equal(Object.values(r.channels).flat().length, 1);
+  await app.close();
+});
+
+test("seen history belongs to the account, not the request", async () => {
+  const app = await makeApp();
+  await post(app, { sources: ["weather"] });
+  // Same sources supplied differently (stored config instead of body) still see the history.
+  await app.inject({ method: "PUT", url: "/api/config", payload: { sources: ["weather"], platforms: [] } });
+  const again = (await app.inject({ method: "POST", url: "/api/signals/generate", payload: {} })).json();
+  assert.equal(Object.values(again.channels).flat().length, 0);
   await app.close();
 });
 

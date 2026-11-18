@@ -11,7 +11,7 @@ export function itemKey(item) {
 }
 
 export function createSignalStore(db) {
-  const selectDismissed = db.prepare("SELECT item_key FROM signals WHERE user_id = ? AND dismissed_at IS NOT NULL");
+  const selectAllKeys = db.prepare("SELECT item_key, dismissed_at IS NOT NULL AS dismissed FROM signals WHERE user_id = ?");
   const selectByKey = db.prepare("SELECT id, useful_at FROM signals WHERE user_id = ? AND item_key = ?");
   const insertSignal = db.prepare(`
     INSERT INTO signals (user_id, item_key, title, link, source, published, channel, score, first_seen_at, last_seen_at)
@@ -26,9 +26,14 @@ export function createSignalStore(db) {
   const setDismissed = db.prepare("UPDATE signals SET dismissed_at = ? WHERE id = ? AND user_id = ?");
   const setUseful = db.prepare("UPDATE signals SET useful_at = ? WHERE id = ? AND user_id = ?");
 
-  /** Keys of items this user dismissed; they are left out of future runs. */
-  function dismissedKeys(userId) {
-    return new Set(selectDismissed.all(userId).map((r) => r.item_key));
+  /**
+   * Every item this user has been shown, as item key to "seen" or "dismissed".
+   * A row exists only once an item has been shown, so all of them are left out
+   * of later runs: each item is offered once, and dismissing marks it as
+   * unwanted for the learning step.
+   */
+  function seenKeys(userId) {
+    return new Map(selectAllKeys.all(userId).map((r) => [r.item_key, r.dismissed ? "dismissed" : "seen"]));
   }
 
   /**
@@ -75,5 +80,5 @@ export function createSignalStore(db) {
     return { id, dismissed: now.dismissed_at !== null, useful: now.useful_at !== null };
   }
 
-  return { dismissedKeys, recordShown, recordOpen, updateState };
+  return { seenKeys, recordShown, recordOpen, updateState };
 }

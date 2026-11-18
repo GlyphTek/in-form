@@ -9,11 +9,13 @@
 //   channels { relevant|attention|knowing|experience: [ {title, linkText, link,
 //              source, published, score (1-10), reason}, ... up to 3, best
 //              first ] }; an empty array means nothing suitable
-//   hiddenDismissed  how many items were left out because the user dismissed them
+//   hidden   { seen, dismissed }: items left out because the user was already
+//            shown them, or dismissed them (see `exclude`)
 //   sources  per-source health so the UI can say exactly what is broken
 //   platforms link-outs only; never turned into fake items
 
 import { assignChannels, CHANNELS } from "./rank.js";
+import { normalizeUrl, titleKey } from "../ingest/normalize.js";
 
 const MAX_ITEMS_PER_SOURCE = 15;
 
@@ -92,6 +94,8 @@ export async function generateSignals({
   now = Date.now,
   concurrency = 5,
   deadlineMs = 25_000,
+  // exclude(item) returns "seen", "dismissed" or a falsy value. Excluded items
+  // are dropped before ranking so the next-best items fill the channels.
   exclude = () => false,
   log,
 }) {
@@ -103,7 +107,7 @@ export async function generateSignals({
       status: "no_sources",
       generatedAt: new Date(startedAt).toISOString(),
       channels: Object.fromEntries(CHANNELS.map((c) => [c, []])),
-      hiddenDismissed: 0,
+      hidden: { seen: 0, dismissed: 0 },
       sources: [],
       platforms: platformLinks,
     };
@@ -126,14 +130,22 @@ export async function generateSignals({
   });
 
   const candidates = [];
-  let excluded = 0;
+  const hidden = { seen: 0, dismissed: 0 };
+  const inThisRun = new Set(); // the same story from two sources counts once
   const sourceReports = fetched.map((result) => {
-    for (const item of result.items.slice(0, MAX_ITEMS_PER_SOURCE)) {
-      // Items the user dismissed are dropped before ranking so others fill the slots.
-      if (exclude(item)) {
-        excluded++;
+    const fresh = [];
+    for (const item of result.items) {
+      const reason = exclude(item);
+      if (reason) {
+        hidden[reason === "dismissed" ? "dismissed" : "seen"]++;
         continue;
       }
+      const keys = [`u:${normalizeUrl(item.link)}`, `t:${titleKey(item.title)}`];
+      if (keys.some((k) => inThisRun.has(k))) continue;
+      keys.forEach((k) => inThisRun.add(k));
+      fresh.push(item);
+    }
+    for (const item of fresh.slice(0, MAX_ITEMS_PER_SOURCE)) {
       candidates.push({
         title: item.title,
         link: item.link,
@@ -177,7 +189,7 @@ export async function generateSignals({
     status,
     generatedAt: new Date(startedAt).toISOString(),
     channels,
-    hiddenDismissed: excluded,
+    hidden,
     sources: sourceReports,
     platforms: platformLinks,
   };

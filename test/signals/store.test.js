@@ -52,17 +52,19 @@ test("recordOpen counts opens and keeps the first open time", () => {
   assert.deepEqual({ ...row }, { opened_at: "2026-11-18T01:00:00.000Z", open_count: 2 });
 });
 
-test("dismiss hides the item's key; undo brings it back; useful is independent", () => {
+test("shown items are 'seen'; dismissing marks them 'dismissed'; undo returns them to 'seen'; useful is independent", () => {
   const { store } = setup();
+  assert.equal(store.seenKeys(1).size, 0);
   const [a] = store.recordShown(1, channelsOf(item("One"))).relevant;
-  assert.equal(store.dismissedKeys(1).size, 0);
+  const key = itemKey(item("One"));
+  assert.equal(store.seenKeys(1).get(key), "seen");
 
   assert.deepEqual(store.updateState(1, a.id, { dismissed: true }), { id: a.id, dismissed: true, useful: false });
-  assert.ok(store.dismissedKeys(1).has(itemKey(item("One"))));
+  assert.equal(store.seenKeys(1).get(key), "dismissed");
 
   assert.deepEqual(store.updateState(1, a.id, { useful: true }), { id: a.id, dismissed: true, useful: true });
   assert.deepEqual(store.updateState(1, a.id, { dismissed: false }), { id: a.id, dismissed: false, useful: true });
-  assert.equal(store.dismissedKeys(1).size, 0);
+  assert.equal(store.seenKeys(1).get(key), "seen", "undoing a dismissal does not make it new again");
 
   const again = store.recordShown(1, channelsOf(item("One")));
   assert.equal(again.relevant[0].useful, true, "useful state comes back with the item");
@@ -82,14 +84,15 @@ test("one user cannot see or change another user's signals", () => {
   const [a] = store.recordShown(1, channelsOf(item("One"))).relevant;
   assert.equal(store.recordOpen(2, a.id), false);
   assert.equal(store.updateState(2, a.id, { dismissed: true }), null);
-  assert.equal(store.dismissedKeys(1).size, 0, "user 2's attempt changed nothing");
+  assert.equal(store.seenKeys(1).get(itemKey(item("One"))), "seen", "user 2's attempt changed nothing");
+  assert.equal(store.seenKeys(2).size, 0, "user 2 has seen nothing");
 
   // The same story for user 2 is a separate row with its own state.
   const [b] = store.recordShown(2, channelsOf(item("One"))).relevant;
   assert.notEqual(b.id, a.id);
   store.updateState(2, b.id, { dismissed: true });
-  assert.equal(store.dismissedKeys(1).size, 0);
-  assert.equal(store.dismissedKeys(2).size, 1);
+  assert.equal(store.seenKeys(1).get(itemKey(item("One"))), "seen");
+  assert.equal(store.seenKeys(2).get(itemKey(item("One"))), "dismissed");
 });
 
 test("unknown ids are not found", () => {
