@@ -15,6 +15,13 @@ function readPort(value, fallback) {
   return port;
 }
 
+// An integer from the environment, clamped to [min, max]; the fallback when unset or invalid.
+function boundedInt(value, fallback, min, max) {
+  const n = Number(value);
+  if (value === undefined || value === "" || !Number.isInteger(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
 // Authentication mode, decided once from the environment:
 //   password      INFORM_PASSWORD is set (12+ characters). The normal mode.
 //   off           INFORM_AUTH=off. Local development only: every request acts as
@@ -53,6 +60,8 @@ export function loadConfig(env = process.env) {
     // Requests per minute per client: general, and for the expensive generate call.
     // Google News search window for keyword sources, e.g. 7d, 30d, 12h.
     newsWindow: /^\d{1,3}[hd]$/.test(env.NEWS_WINDOW ?? "") ? env.NEWS_WINDOW : "30d",
+    // Relevant only takes items newer than this many hours (1 to 720).
+    relevantMaxAgeHours: boundedInt(env.RELEVANT_MAX_AGE_HOURS, 48, 1, 720),
     rateLimitPerMinute: Number(env.RATE_LIMIT_PER_MINUTE) || 120,
     generateRateLimitPerMinute: Number(env.GENERATE_RATE_LIMIT_PER_MINUTE) || 12,
     databasePath: path.resolve(rootDir, env.DATABASE_PATH || "data/inform.db"),

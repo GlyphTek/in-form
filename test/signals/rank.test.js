@@ -129,3 +129,33 @@ test("every channel gets its best item before any gets a second", () => {
   assert.equal(out.attention.length, 2);
   assert.equal(out.relevant.length, 1);
 });
+
+test("Relevant only takes items from the last 48 hours, so it runs dry", () => {
+  const out = assignChannels(
+    [
+      item("Council approves budget", { published: hoursAgo(5) }),
+      item("Library hours updated", { published: hoursAgo(47) }),
+      item("Parking rules explained", { published: hoursAgo(49) }),
+      item("Old planning story", { published: hoursAgo(24 * 10) }),
+    ],
+    { now: NOW },
+  );
+  assert.deepEqual(out.relevant.map((i) => i.title), ["Council approves budget", "Library hours updated"]);
+});
+
+test("the Relevant age limit is adjustable", () => {
+  const items = [item("Council approves budget", { published: hoursAgo(5) }), item("Library hours updated", { published: hoursAgo(30) })];
+  assert.equal(assignChannels(items, { now: NOW, relevantMaxAgeHours: 12 }).relevant.length, 1);
+  assert.equal(assignChannels(items, { now: NOW, relevantMaxAgeHours: 72 }).relevant.length, 2);
+});
+
+test("undated items can still appear in Relevant", () => {
+  const out = assignChannels([item("Site news without a date", { published: null })], { now: NOW });
+  assert.equal(out.relevant.length, 1);
+});
+
+test("the age limit applies to Relevant only; an old item matching a cue still lands in its channel", () => {
+  const out = assignChannels([item("Storm warning issued", { published: hoursAgo(24 * 5) })], { now: NOW });
+  assert.equal(out.attention.length, 1);
+  assert.equal(out.relevant.length, 0);
+});

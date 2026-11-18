@@ -119,7 +119,7 @@ export async function buildApp(config, { db: providedDb, ingestor: providedInges
 
   await app.register(authRoutes, { auth });
   await app.register(configRoutes, { store, signals });
-  await app.register(signalRoutes, { ingestor, store, signals, generateOptions });
+  await app.register(signalRoutes, { ingestor, store, signals, generateOptions: { relevantMaxAgeHours: config.relevantMaxAgeHours, ...generateOptions } });
 
   app.get("/api/health", async (request, reply) => {
     let database = "ok";

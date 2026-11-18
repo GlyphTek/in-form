@@ -18,6 +18,9 @@ Short handover for a fresh session. Update it after each step. The roadmap is in
 - Removing a source in setup forgets what was shown from it; adding it back
   starts it fresh (limited to what the source still serves). Dismissed items
   stay hidden. History rows are kept for learning (`cleared_at`).
+- Relevant takes only items from the last 48 hours (`RELEVANT_MAX_AGE_HOURS`),
+  so it runs dry like the other cards. Until Step 6 it means "newest unseen",
+  not "relevant to you".
 - No placeholder content, ever. Empty or failed states are stated plainly.
 - Hosting target: Fly.io, one machine, SQLite on a volume (`docs/DEPLOY.md`).
 - Working style: small steps, summary after each, wait for confirmation.

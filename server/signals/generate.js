@@ -97,6 +97,7 @@ export async function generateSignals({
   // exclude(item) returns "seen", "dismissed" or a falsy value. Excluded items
   // are dropped before ranking so the next-best items fill the channels.
   exclude = () => false,
+  relevantMaxAgeHours,
   log,
 }) {
   const startedAt = now();
@@ -171,7 +172,7 @@ export async function generateSignals({
   if (delivered === 0) status = "unavailable";
   else if (delivered < sourceReports.length || sourceReports.some((s) => s.status === "stale")) status = "partial";
 
-  const assigned = assignChannels(candidates, { now: now() });
+  const assigned = assignChannels(candidates, { now: now(), relevantMaxAgeHours });
   const channels = {};
   for (const channel of CHANNELS) {
     channels[channel] = assigned[channel].map((a) => ({

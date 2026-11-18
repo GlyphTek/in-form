@@ -16,7 +16,9 @@
 //   3. Cue-based channels fill first, in rounds (each gets its best item before
 //      any gets a second); Relevant then takes the best of what remains. An
 //      item appears in at most one channel, and repeats from one source are
-//      mildly penalised.
+//      mildly penalised. Relevant only takes items from the last
+//      RELEVANT_MAX_AGE_HOURS, so it runs dry when nothing recent is left
+//      instead of working back through old items. Undated items are allowed.
 //
 // This is deliberately small and explainable. Step 6 adds per-user learned
 // weights on top of the same structure.
@@ -24,6 +26,8 @@
 export const CHANNELS = ["relevant", "attention", "knowing", "experience"];
 
 export const ITEMS_PER_CHANNEL = 3;
+/** Relevant only takes items published within this many hours (undated items are allowed). */
+export const RELEVANT_MAX_AGE_HOURS = 48;
 const HALF_LIFE_HOURS = 24;
 const UNDATED_RECENCY = 0.25;
 const SOURCE_REPEAT_PENALTY = 0.8;
@@ -81,9 +85,12 @@ function toTen(score) {
 /**
  * Assign up to `perChannel` candidates to each channel.
  * @param {Array} candidates
- * @param {{ now?: number, perChannel?: number }} options
+ * @param {{ now?: number, perChannel?: number, relevantMaxAgeHours?: number }} options
  */
-export function assignChannels(candidates, { now = Date.now(), perChannel = ITEMS_PER_CHANNEL } = {}) {
+export function assignChannels(
+  candidates,
+  { now = Date.now(), perChannel = ITEMS_PER_CHANNEL, relevantMaxAgeHours = RELEVANT_MAX_AGE_HOURS } = {},
+) {
   const result = { relevant: [], attention: [], knowing: [], experience: [] };
   const pool = candidates.map((c) => ({ c, base: baseScore(c, now) }));
   const usedSources = new Map();
@@ -120,7 +127,9 @@ export function assignChannels(candidates, { now = Date.now(), perChannel = ITEM
     }
   }
   // Relevant takes the best of what is left.
-  for (let n = 0; n < perChannel; n++) pick("relevant", ({ base }) => base);
+  const maxAgeMs = relevantMaxAgeHours * 3_600_000;
+  const freshEnough = (c) => !c.published || now - Date.parse(c.published) <= maxAgeMs;
+  for (let n = 0; n < perChannel; n++) pick("relevant", ({ c, base }) => (freshEnough(c) ? base : null));
 
   return result;
 }

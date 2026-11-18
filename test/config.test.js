@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { testConfig } from "./helpers.js";
+import { loadConfig } from "../server/config.js";
 import { buildApp } from "../server/app.js";
 import { openDatabase } from "../server/db.js";
 
@@ -168,4 +169,12 @@ test("rows are scoped to their owner (a second account cannot read the first's c
   const store = createConfigStore(db);
   assert.deepEqual(store.get(other), { sources: [], platforms: [], updatedAt: null });
   await app.close();
+});
+
+test("RELEVANT_MAX_AGE_HOURS defaults to 48 and is clamped to 1..720", () => {
+  assert.equal(loadConfig({ INFORM_AUTH: "off" }).relevantMaxAgeHours, 48);
+  assert.equal(loadConfig({ INFORM_AUTH: "off", RELEVANT_MAX_AGE_HOURS: "24" }).relevantMaxAgeHours, 24);
+  assert.equal(loadConfig({ INFORM_AUTH: "off", RELEVANT_MAX_AGE_HOURS: "0" }).relevantMaxAgeHours, 1);
+  assert.equal(loadConfig({ INFORM_AUTH: "off", RELEVANT_MAX_AGE_HOURS: "99999" }).relevantMaxAgeHours, 720);
+  assert.equal(loadConfig({ INFORM_AUTH: "off", RELEVANT_MAX_AGE_HOURS: "soon" }).relevantMaxAgeHours, 48);
 });
