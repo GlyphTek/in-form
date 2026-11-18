@@ -23,6 +23,31 @@ The server applies pending SQL migrations (`server/migrations/`) on startup.
 - `test/` — `node:test` suites
 - `docs/` — brief and planning notes
 
+## Feed ingestion (`server/ingest/`)
+
+A source is whatever the user types: a topic keyword, a site URL, or a feed URL.
+
+| File | Job |
+|---|---|
+| `detect.js` | Classify input as `keyword` / `site` / `feed` (no network) |
+| `ssrf.js` | URL validation and private-address blocking |
+| `fetcher.js` | Hardened fetch: timeout, size cap, per-hop redirect checks |
+| `parse.js` | RSS/Atom to clean items (tags stripped, http(s) links only) |
+| `discover.js` | Find a site's feed from `<link rel="alternate">` or common paths |
+| `normalize.js` | URL/title normalisation and deduplication |
+| `service.js` | Cache, conditional GET, backoff, stale-on-failure, health |
+
+Keywords become a Google News RSS search fetched by the server. This is an
+unofficial endpoint, but it sits behind the same cache and health tracking as
+any other feed.
+
+Check live fetching on your own machine or server (the dev sandbox blocks
+outbound requests):
+
+```sh
+npm run ingest -- "quantum computing" bbc.com https://example.com/feed.xml
+```
+
 ## Configuration
 
 | Variable | Default | Notes |
