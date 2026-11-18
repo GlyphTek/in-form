@@ -38,8 +38,8 @@ test("returns channels, per-source status and platform links", async () => {
   assert.equal(res.headers["cache-control"], "no-store");
   const body = res.json();
   assert.equal(body.status, "ok");
-  assert.match(body.channels.attention.title, /Storm warning/);
-  assert.equal(body.channels.attention.linkText, "news.example.com");
+  assert.match(body.channels.attention[0].title, /Storm warning/);
+  assert.equal(body.channels.attention[0].linkText, "news.example.com");
   assert.equal(body.sources[0].input, "weather");
   assert.deepEqual(body.platforms, [{ name: "GitHub", url: "https://github.com" }]);
   await app.close();

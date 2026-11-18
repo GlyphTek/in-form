@@ -37,29 +37,28 @@ test("assigns each cue to its channel and the rest to relevant", () => {
     ],
     { now: NOW },
   );
-  assert.match(out.attention.title, /storm/i);
-  assert.match(out.knowing.title, /study/i);
-  assert.match(out.experience.title, /open day/i);
-  assert.equal(out.relevant.title, "Council approves budget");
+  assert.match(out.attention[0].title, /storm/i);
+  assert.match(out.knowing[0].title, /study/i);
+  assert.match(out.experience[0].title, /open day/i);
+  assert.equal(out.relevant[0].title, "Council approves budget");
 });
 
 test("an item is never used in two channels", () => {
   const out = assignChannels([item("Live webinar: how to survive a storm warning")], { now: NOW });
-  const filled = Object.values(out).filter(Boolean);
-  assert.equal(filled.length, 1);
+  assert.equal(Object.values(out).flat().length, 1);
 });
 
 test("channels with nothing suitable stay empty instead of being padded", () => {
   const out = assignChannels([item("Council approves budget"), item("Mayor opens library")], { now: NOW });
-  assert.equal(out.attention, null);
-  assert.equal(out.knowing, null);
-  assert.equal(out.experience, null);
-  assert.ok(out.relevant);
+  assert.deepEqual(out.attention, []);
+  assert.deepEqual(out.knowing, []);
+  assert.deepEqual(out.experience, []);
+  assert.equal(out.relevant.length, 2);
 });
 
 test("no candidates gives four empty channels", () => {
   const out = assignChannels([], { now: NOW });
-  assert.deepEqual(out, { relevant: null, attention: null, knowing: null, experience: null });
+  assert.deepEqual(out, { relevant: [], attention: [], knowing: [], experience: [] });
 });
 
 test("fresher items beat older ones within a channel", () => {
@@ -67,7 +66,7 @@ test("fresher items beat older ones within a channel", () => {
     [item("Old storm warning", { published: hoursAgo(72) }), item("New storm warning", { published: hoursAgo(1) })],
     { now: NOW },
   );
-  assert.equal(out.attention.title, "New storm warning");
+  assert.equal(out.attention[0].title, "New storm warning");
 });
 
 test("ties prefer a source that has not been used yet", () => {
@@ -80,13 +79,13 @@ test("ties prefer a source that has not been used yet", () => {
     ],
     { now: NOW },
   );
-  assert.equal(out.attention.source, "a");
-  assert.equal(out.knowing.source, "b", "second pick should come from a different source");
+  assert.equal(out.attention[0].source, "a");
+  assert.equal(out.knowing[0].source, "b", "second pick should come from a different source");
 });
 
 test("scores are integers from 1 to 10 and fresher means higher", () => {
-  const fresh = assignChannels([item("Storm warning", { published: hoursAgo(0) })], { now: NOW }).attention.score;
-  const old = assignChannels([item("Storm warning", { published: hoursAgo(120) })], { now: NOW }).attention.score;
+  const fresh = assignChannels([item("Storm warning", { published: hoursAgo(0) })], { now: NOW }).attention[0].score;
+  const old = assignChannels([item("Storm warning", { published: hoursAgo(120) })], { now: NOW }).attention[0].score;
   for (const s of [fresh, old]) assert.ok(Number.isInteger(s) && s >= 1 && s <= 10);
   assert.ok(fresh > old);
 });
@@ -96,6 +95,37 @@ test("input is not mutated and the output carries the candidate fields", () => {
   const snapshot = JSON.stringify(input);
   const out = assignChannels(input, { now: NOW });
   assert.equal(JSON.stringify(input), snapshot);
-  assert.equal(out.attention.link, input[0].link);
-  assert.ok(out.attention.reason);
+  assert.equal(out.attention[0].link, input[0].link);
+  assert.ok(out.attention[0].reason);
+});
+
+test("a channel holds up to three items, best first, and never duplicates an item", () => {
+  const out = assignChannels(
+    [
+      item("Storm warning one", { published: hoursAgo(1) }),
+      item("Storm warning two", { published: hoursAgo(5) }),
+      item("Storm warning three", { published: hoursAgo(9) }),
+      item("Storm warning four", { published: hoursAgo(13) }),
+      item("Council approves budget", { published: hoursAgo(2) }),
+    ],
+    { now: NOW },
+  );
+  assert.deepEqual(out.attention.map((i) => i.title), ["Storm warning one", "Storm warning two", "Storm warning three"]);
+  assert.ok(out.attention[0].score >= out.attention[1].score && out.attention[1].score >= out.attention[2].score);
+  const titles = Object.values(out).flat().map((i) => i.title);
+  assert.equal(new Set(titles).size, titles.length);
+  assert.ok(titles.includes("Council approves budget"));
+});
+
+test("every channel gets its best item before any gets a second", () => {
+  const out = assignChannels(
+    [
+      item("Storm warning one", { published: hoursAgo(1) }),
+      item("Storm warning two", { published: hoursAgo(2) }),
+      item("Council approves budget", { published: hoursAgo(3) }),
+    ],
+    { now: NOW },
+  );
+  assert.equal(out.attention.length, 2);
+  assert.equal(out.relevant.length, 1);
 });

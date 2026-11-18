@@ -92,16 +92,18 @@ returns:
 
 - `status`: `ok`, `partial`, `unavailable` or `no_sources`
 - `channels`: `relevant`, `attention`, `knowing`, `experience`; each is
-  `{ title, link, linkText, source, published, score (1-10), reason }` or `null`
-  when nothing suitable exists
+  an array of up to 3 items, best first, each
+  `{ title, link, linkText, source, published, score (1-10), reason }`; an
+  empty array means nothing suitable exists
 - `sources`: per-source health (`ok` / `stale` / `error`, item count, error)
 - `platforms`: link-outs only (`url` is `null` when the name is not a known
   platform or domain)
 
 Channel assignment (`server/signals/rank.js`) is rule-based: recency decay plus
-whole-word cue lists for Attention, Knowing and Experience. An item appears in
-at most one channel, and a channel with nothing suitable stays empty rather
-than being padded. The endpoint is rate limited and validates input strictly.
+whole-word cue lists for Attention, Knowing and Experience. Cue-based
+channels fill first and Relevant takes the best of what is left. An item appears
+in at most one channel, and a channel with nothing suitable stays short or empty
+rather than being padded. A card's bar shows the score of its best item. The endpoint is rate limited and validates input strictly.
 
 The frontend never shows placeholder signals. If the server cannot be reached
 it says so and shows empty channels.

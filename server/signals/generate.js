@@ -6,14 +6,15 @@
 //            "partial"     some sources failed or timed out
 //            "unavailable" sources were declared but none delivered
 //            "no_sources"  nothing declared
-//   channels { relevant|attention|knowing|experience: {title, linkText, link,
-//              source, published, score (1-10), reason} | null }
+//   channels { relevant|attention|knowing|experience: [ {title, linkText, link,
+//              source, published, score (1-10), reason}, ... up to 3, best
+//              first ] }; an empty array means nothing suitable
 //   sources  per-source health so the UI can say exactly what is broken
 //   platforms link-outs only; never turned into fake items
 
 import { assignChannels, CHANNELS } from "./rank.js";
 
-const MAX_ITEMS_PER_SOURCE = 10;
+const MAX_ITEMS_PER_SOURCE = 15;
 
 function linkLabel(link) {
   try {
@@ -99,7 +100,7 @@ export async function generateSignals({
     return {
       status: "no_sources",
       generatedAt: new Date(startedAt).toISOString(),
-      channels: Object.fromEntries(CHANNELS.map((c) => [c, null])),
+      channels: Object.fromEntries(CHANNELS.map((c) => [c, []])),
       sources: [],
       platforms: platformLinks,
     };
@@ -152,18 +153,15 @@ export async function generateSignals({
   const assigned = assignChannels(candidates, { now: now() });
   const channels = {};
   for (const channel of CHANNELS) {
-    const a = assigned[channel];
-    channels[channel] = a
-      ? {
-          title: a.title,
-          link: a.link,
-          linkText: a.linkText,
-          source: a.source,
-          published: a.published,
-          score: a.score,
-          reason: a.reason,
-        }
-      : null;
+    channels[channel] = assigned[channel].map((a) => ({
+      title: a.title,
+      link: a.link,
+      linkText: a.linkText,
+      source: a.source,
+      published: a.published,
+      score: a.score,
+      reason: a.reason,
+    }));
   }
 
   return {

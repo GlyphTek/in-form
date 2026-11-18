@@ -1,10 +1,11 @@
 // Stateless, rule-based channel assignment for the four RAKE channels.
 //
 // Input:  candidates = [{ title, link, published, summary, source, sourceKind }]
-// Output: { relevant, attention, knowing, experience } where each value is
-//         { ...candidate, score (0-10), reason } or null when nothing suitable
-//         exists. A channel with nothing honest to show stays empty; we never
-//         pad it with the closest-looking item.
+// Output: { relevant, attention, knowing, experience } where each value is an
+//         array of up to `perChannel` (default 3) items, best first, each
+//         { ...candidate, score (0-10), reason }. An empty array means nothing
+//         suitable exists. A channel with nothing honest to show stays short or
+//         empty; we never pad it with the closest-looking item.
 //
 // How it works
 //   1. Every candidate gets a base score from recency (half-life 24h). Undated
@@ -12,14 +13,17 @@
 //   2. Lexicon rules say which channel a candidate suits. Attention, Experience
 //      and Knowing each need a lexicon match; Relevant is the default channel
 //      for the best remaining item from the user's own sources.
-//   3. Channels are filled most-specific first. An item appears in at most one
-//      channel, and ties prefer a source that has not been used yet.
+//   3. Cue-based channels fill first, in rounds (each gets its best item before
+//      any gets a second); Relevant then takes the best of what remains. An
+//      item appears in at most one channel, and repeats from one source are
+//      mildly penalised.
 //
 // This is deliberately small and explainable. Step 6 adds per-user learned
 // weights on top of the same structure.
 
 export const CHANNELS = ["relevant", "attention", "knowing", "experience"];
 
+export const ITEMS_PER_CHANNEL = 3;
 const HALF_LIFE_HOURS = 24;
 const UNDATED_RECENCY = 0.25;
 const SOURCE_REPEAT_PENALTY = 0.8;
@@ -75,12 +79,12 @@ function toTen(score) {
 }
 
 /**
- * Assign at most one candidate to each channel.
+ * Assign up to `perChannel` candidates to each channel.
  * @param {Array} candidates
- * @param {{ now?: number }} options
+ * @param {{ now?: number, perChannel?: number }} options
  */
-export function assignChannels(candidates, { now = Date.now() } = {}) {
-  const result = { relevant: null, attention: null, knowing: null, experience: null };
+export function assignChannels(candidates, { now = Date.now(), perChannel = ITEMS_PER_CHANNEL } = {}) {
+  const result = { relevant: [], attention: [], knowing: [], experience: [] };
   const pool = candidates.map((c) => ({ c, base: baseScore(c, now) }));
   const usedSources = new Map();
   const taken = new Set();
@@ -98,21 +102,25 @@ export function assignChannels(candidates, { now = Date.now() } = {}) {
     if (!best) return;
     taken.add(best.entry);
     usedSources.set(best.entry.c.source, (usedSources.get(best.entry.c.source) ?? 0) + 1);
-    result[channel] = {
+    result[channel].push({
       ...best.entry.c,
       score: toTen(best.raw),
-      reason: channel === "relevant" ? "best recent item from your sources" : `matches ${channel} cues`,
-    };
-  }
-
-  // Most specific channels first so they get first claim on matching items.
-  for (const channel of ["attention", "experience", "knowing"]) {
-    pick(channel, ({ c, base }) => {
-      const hits = lexiconHits(channel, c);
-      return hits > 0 ? base + LEXICON_BONUS[channel] * Math.min(hits, 2) / 2 : null;
+      reason: channel === "relevant" ? "recent item from your sources" : `matches ${channel} cues`,
     });
   }
-  pick("relevant", ({ base }) => base);
+
+  // Cue-based channels first, in rounds (each gets its best item before any
+  // gets a second), so items that match a cue are never taken by Relevant.
+  for (let round = 0; round < perChannel; round++) {
+    for (const channel of ["attention", "experience", "knowing"]) {
+      pick(channel, ({ c, base }) => {
+        const hits = lexiconHits(channel, c);
+        return hits > 0 ? base + LEXICON_BONUS[channel] * Math.min(hits, 2) / 2 : null;
+      });
+    }
+  }
+  // Relevant takes the best of what is left.
+  for (let n = 0; n < perChannel; n++) pick("relevant", ({ base }) => base);
 
   return result;
 }

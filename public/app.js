@@ -726,9 +726,13 @@ if (activeSourcesToggle) {
 let isGenerating = false;
 
 function renderSignalHtml(signal) {
-    return `<p><strong>${escapeHtml(signal.title)}</strong><br>` +
+    return `<p class="signal-item"><strong>${escapeHtml(signal.title)}</strong><br>` +
         `<a href="${escapeHtml(safeUrl(signal.link))}" target="_blank" rel="noopener noreferrer" ` +
         `style="color: var(--secondary);">${escapeHtml(signal.linkText)}</a></p>`;
+}
+
+function renderChannelHtml(signals) {
+    return signals.map(renderSignalHtml).join("");
 }
 
 function getBarString(fillCount) {
@@ -924,8 +928,9 @@ function showUnavailable(config, message) {
 function showSignals(config, result) {
     const targets = {};
     CHANNELS.forEach(channel => {
-        const signal = result.channels[channel];
-        targets[channel] = signal ? Math.max(0, Math.min(10, Number(signal.score) || 0)) : 0;
+        // The bar shows the strength of the channel's best item.
+        const top = (result.channels[channel] || [])[0];
+        targets[channel] = top ? Math.max(0, Math.min(10, Number(top.score) || 0)) : 0;
     });
 
     let currentStep = 0;
@@ -939,11 +944,11 @@ function showSignals(config, result) {
         clearInterval(fillInterval);
 
         CHANNELS.forEach(channel => {
-            const signal = result.channels[channel];
-            contentElements[channel].innerHTML = signal
-                ? renderSignalHtml(signal)
+            const signals = result.channels[channel] || [];
+            contentElements[channel].innerHTML = signals.length
+                ? renderChannelHtml(signals)
                 : `<p>${escapeHtml(EMPTY_CHANNEL_TEXT)}</p>`;
-            if (signal) checkElements[channel].classList.add("visible");
+            if (signals.length) checkElements[channel].classList.add("visible");
         });
 
         tifaSubtitle.textContent = subtitleFor(result);

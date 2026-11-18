@@ -21,7 +21,7 @@ const mk = (title, h = 2) => ({ title, link: `https://news.example.com/${encodeU
 test("no sources gives no_sources with empty channels and platform links", async () => {
   const r = await generateSignals({ ingestor: fakeIngestor({}), sources: [], platforms: ["GitHub", "Some Club"], now: () => NOW });
   assert.equal(r.status, "no_sources");
-  assert.deepEqual(Object.values(r.channels), [null, null, null, null]);
+  assert.deepEqual(Object.values(r.channels), [[], [], [], []]);
   assert.deepEqual(r.platforms, [
     { name: "GitHub", url: "https://github.com" },
     { name: "Some Club", url: null },
@@ -35,12 +35,12 @@ test("all sources healthy gives ok with real items and no synthetic platform con
   });
   const r = await generateSignals({ ingestor, sources: ["physics", "weather"], platforms: ["X", "YouTube"], now: () => NOW });
   assert.equal(r.status, "ok");
-  assert.match(r.channels.attention.title, /storm/i);
-  assert.match(r.channels.knowing.title, /study/i);
-  assert.equal(r.channels.attention.linkText, "news.example.com");
-  assert.equal(r.channels.experience, null);
+  assert.match(r.channels.attention[0].title, /storm/i);
+  assert.match(r.channels.knowing[0].title, /study/i);
+  assert.equal(r.channels.attention[0].linkText, "news.example.com");
+  assert.deepEqual(r.channels.experience, []);
   // Platforms never appear as channel content.
-  for (const c of Object.values(r.channels).filter(Boolean)) assert.ok(!/Activity emerging|Participation window/.test(c.title));
+  for (const c of Object.values(r.channels).flat()) assert.ok(!/Activity emerging|Participation window/.test(c.title));
   assert.deepEqual(r.sources.map((s) => s.status), ["ok", "ok"]);
 });
 
@@ -48,7 +48,7 @@ test("one failing source gives partial and the others still deliver", async () =
   const ingestor = fakeIngestor({ physics: ok("physics", [mk("Lab opens")]) });
   const r = await generateSignals({ ingestor, sources: ["physics", "broken"], now: () => NOW });
   assert.equal(r.status, "partial");
-  assert.ok(r.channels.relevant);
+  assert.equal(r.channels.relevant.length, 1);
   assert.equal(r.sources.find((s) => s.input === "broken").status, "error");
   assert.equal(r.sources.find((s) => s.input === "broken").error.kind, "http");
 });
@@ -57,13 +57,13 @@ test("a stale source also marks the run partial", async () => {
   const stale = { ...ok("physics", [mk("Lab opens", 30)]), status: "stale", error: { kind: "timeout", message: "x" } };
   const r = await generateSignals({ ingestor: fakeIngestor({ physics: stale }), sources: ["physics"], now: () => NOW });
   assert.equal(r.status, "partial");
-  assert.ok(r.channels.relevant);
+  assert.equal(r.channels.relevant.length, 1);
 });
 
 test("every source failing gives unavailable and empty channels (no placeholders)", async () => {
   const r = await generateSignals({ ingestor: fakeIngestor({}), sources: ["a", "b"], now: () => NOW });
   assert.equal(r.status, "unavailable");
-  assert.deepEqual(Object.values(r.channels), [null, null, null, null]);
+  assert.deepEqual(Object.values(r.channels), [[], [], [], []]);
 });
 
 test("sources that miss the deadline are reported as timeouts without blocking the rest", async () => {
@@ -78,7 +78,7 @@ test("sources that miss the deadline are reported as timeouts without blocking t
   const slow = r.sources.find((s) => s.input === "slow");
   assert.equal(slow.status, "error");
   assert.equal(slow.error.kind, "timeout");
-  assert.equal(r.channels.relevant.title, "Lab opens");
+  assert.equal(r.channels.relevant[0].title, "Lab opens");
 });
 
 test("concurrency is capped", async () => {
