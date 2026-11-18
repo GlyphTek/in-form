@@ -31,6 +31,25 @@ export function createSignalStore(db) {
   const setDismissed = db.prepare("UPDATE signals SET dismissed_at = ? WHERE id = ? AND user_id = ?");
   const setUseful = db.prepare("UPDATE signals SET useful_at = ? WHERE id = ? AND user_id = ?");
 
+  const FEEDBACK_LIMIT = 500;
+  const selectFeedback = db.prepare(`
+    SELECT title, source, open_count, opened_at, useful_at, dismissed_at FROM signals
+    WHERE user_id = ? AND (opened_at IS NOT NULL OR useful_at IS NOT NULL OR dismissed_at IS NOT NULL)
+    ORDER BY MAX(COALESCE(opened_at, ''), COALESCE(useful_at, ''), COALESCE(dismissed_at, '')) DESC
+    LIMIT ${FEEDBACK_LIMIT}`);
+
+  /** The user's most recent feedback (opens, useful marks, dismissals), for learning. */
+  function feedbackRows(userId) {
+    return selectFeedback.all(userId).map((r) => ({
+      title: r.title,
+      source: r.source,
+      openCount: r.open_count,
+      openedAt: r.opened_at,
+      usefulAt: r.useful_at,
+      dismissedAt: r.dismissed_at,
+    }));
+  }
+
   /**
    * Every item this user has been shown, as item key to "seen" or "dismissed".
    * A row exists only once an item has been shown, so all of them are left out
@@ -98,5 +117,5 @@ export function createSignalStore(db) {
     return { id, dismissed: now.dismissed_at !== null, useful: now.useful_at !== null };
   }
 
-  return { seenKeys, forgetSources, recordShown, recordOpen, updateState };
+  return { seenKeys, feedbackRows, forgetSources, recordShown, recordOpen, updateState };
 }

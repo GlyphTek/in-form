@@ -735,6 +735,7 @@ function renderSignalHtml(signal) {
         `<p><strong>${escapeHtml(signal.title)}</strong><br>` +
         `<a href="${escapeHtml(safeUrl(signal.link))}" target="_blank" rel="noopener noreferrer" ` +
         `data-signal-link style="color: var(--secondary);">${escapeHtml(signal.linkText)}</a></p>` +
+        (signal.reason ? `<p class="signal-why">Why: ${escapeHtml(signal.reason)}</p>` : "") +
         `<div class="signal-actions">` +
         `<button type="button" class="signal-btn" data-action="useful" aria-pressed="${signal.useful ? "true" : "false"}">` +
         `${signal.useful ? "Useful ✓" : "Useful"}</button>` +

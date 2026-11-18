@@ -1104,3 +1104,10 @@ button[type="button"]:hover{
     color:#ff8888;
     font-size:.7rem;
 }
+
+.content p.signal-why{
+    margin-top:2px;
+    font-size:.65rem;
+    line-height:1.5;
+    color:#8a8a8a;
+}

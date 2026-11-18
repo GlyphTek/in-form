@@ -10,6 +10,7 @@
 
 import { generateSignals } from "../signals/generate.js";
 import { itemKey } from "../store/signals.js";
+import { affinity, buildProfile, summarize } from "../signals/learn.js";
 import { MAX_PLATFORMS, MAX_SOURCES, normalizeList } from "../store/config.js";
 
 const bodySchema = {
@@ -60,11 +61,14 @@ export default async function signalRoutes(app, { ingestor, store, signals, gene
       // Anything already shown to this user is left out, so pressing again gives
       // the next batch instead of the same items.
       const seen = signals.seenKeys(request.user.id);
+      // What this user opens, marks useful and dismisses nudges the ranking.
+      const profile = buildProfile(signals.feedbackRows(request.user.id));
       const result = await generateSignals({
         ingestor,
         sources,
         platforms,
         exclude: (item) => seen.get(itemKey(item)) ?? false,
+        affinity: (candidate) => affinity(profile, candidate),
         log: request.log,
         ...generateOptions,
       });
@@ -87,6 +91,12 @@ export default async function signalRoutes(app, { ingestor, store, signals, gene
       return result;
     },
   );
+
+  // What has been learned from this user's opens, useful marks and dismissals.
+  app.get("/api/learning", { preHandler: app.requireAuth }, async (request, reply) => {
+    reply.header("cache-control", "no-store");
+    return summarize(buildProfile(signals.feedbackRows(request.user.id)));
+  });
 
   // The user opened a signal's link.
   app.post("/api/signals/:id/open", { schema: { params: idParams }, preHandler: app.requireAuth }, async (request, reply) => {

@@ -98,6 +98,7 @@ export async function generateSignals({
   // are dropped before ranking so the next-best items fill the channels.
   exclude = () => false,
   relevantMaxAgeHours,
+  affinity,
   log,
 }) {
   const startedAt = now();
@@ -172,7 +173,7 @@ export async function generateSignals({
   if (delivered === 0) status = "unavailable";
   else if (delivered < sourceReports.length || sourceReports.some((s) => s.status === "stale")) status = "partial";
 
-  const assigned = assignChannels(candidates, { now: now(), relevantMaxAgeHours });
+  const assigned = assignChannels(candidates, { now: now(), relevantMaxAgeHours, affinity });
   const channels = {};
   for (const channel of CHANNELS) {
     channels[channel] = assigned[channel].map((a) => ({

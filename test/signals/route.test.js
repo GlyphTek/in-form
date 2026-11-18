@@ -312,3 +312,82 @@ test("a rejected save does not forget anything", async () => {
   assert.equal((await generateStored(app)).hidden.seen, 1);
   await app.close();
 });
+
+// --- Learning from feedback ------------------------------------------------------
+
+function learningApp() {
+  let round = 1;
+  const make = (input) => {
+    const topic = input === "a" ? "Quantum computing" : "Celebrity gossip";
+    const items = Array.from({ length: 4 }, (_, n) => ({
+      ...item(`${topic} roundup ${round}-${n + 1}`),
+      link: `https://news.example.com/${input}-${round}-${n + 1}`,
+      published: new Date(NOW - 3_600_000 * (n + 1)).toISOString(),
+    }));
+    return { input, kind: "keyword", status: "ok", items, fetchedAt: null, error: null };
+  };
+  const ingestor = { async getItems(input) { return make(input); }, listHealth: () => [] };
+  return { ingestor, nextRound: () => { round++; } };
+}
+
+test("items you mark useful pull similar ones up, and dismissed ones push similar ones down", async () => {
+  const { ingestor, nextRound } = learningApp();
+  const app = await buildApp(testConfig(), { db: openDatabase(":memory:"), ingestor });
+  const gen = async (sources) => (await post(app, { sources })).json();
+
+  // No history: a tie between the two sources, so no learning note anywhere.
+  const first = await gen(["a"]);
+  for (const i of first.channels.relevant) assert.ok(!/boosted|ranked lower/.test(i.reason));
+  for (const i of first.channels.relevant) await put(app, `/api/signals/${i.id}/state`, { useful: true });
+  const other = await gen(["b"]);
+  for (const i of other.channels.relevant) await put(app, `/api/signals/${i.id}/state`, { dismissed: true });
+
+  nextRound();
+  const next = await gen(["a", "b"]);
+  const titles = next.channels.relevant.map((i) => i.title);
+  assert.ok(titles.every((t) => t.startsWith("Quantum")), `liked topic leads: ${titles.join(" | ")}`);
+  assert.match(next.channels.relevant[0].reason, /boosted: a source you like and topics you like \(/);
+  assert.ok(next.channels.relevant[0].score >= 1);
+
+  // The disliked source's items still exist, just later, and say why.
+  nextRound();
+  const later = await gen(["b"]);
+  assert.ok(later.channels.relevant.length > 0, "demoted, not hidden");
+  assert.match(later.channels.relevant[0].reason, /ranked lower: a source you dismiss/);
+  await app.close();
+});
+
+test("another account's feedback does not influence ranking", async () => {
+  const { ingestor, nextRound } = learningApp();
+  const db = openDatabase(":memory:");
+  const app = await buildApp(testConfig(), { db, ingestor });
+  const first = (await post(app, { sources: ["a"] })).json();
+  const ids = first.channels.relevant.map((i) => i.id);
+  // Feedback belonging to a different user row must not be read for this one.
+  db.prepare("INSERT INTO users (id, email) VALUES (99, 'other@x.test')").run();
+  db.prepare("UPDATE signals SET user_id = 99 WHERE id IN (" + ids.join(",") + ")").run();
+  db.prepare("UPDATE signals SET useful_at = '2026-11-18T00:00:00.000Z' WHERE user_id = 99").run();
+  nextRound();
+  const next = (await post(app, { sources: ["a"] })).json();
+  for (const i of next.channels.relevant) assert.ok(!/boosted/.test(i.reason));
+  await app.close();
+});
+
+test("GET /api/learning shows what has been learned, and needs sign-in", async () => {
+  const { ingestor } = learningApp();
+  const app = await buildApp(testConfig(), { db: openDatabase(":memory:"), ingestor });
+  const empty = (await app.inject({ method: "GET", url: "/api/learning" })).json();
+  assert.deepEqual(empty, { events: 0, likedSources: [], dismissedSources: [], likedWords: [], dismissedWords: [] });
+
+  const first = (await post(app, { sources: ["a"] })).json();
+  for (const i of first.channels.relevant) await put(app, `/api/signals/${i.id}/state`, { useful: true });
+  const learned = (await app.inject({ method: "GET", url: "/api/learning" })).json();
+  assert.equal(learned.events, 3);
+  assert.equal(learned.likedSources[0].name, "a");
+  assert.ok(learned.likedWords.some((w) => w.name === "quantum"));
+  await app.close();
+
+  const locked = await makeApp({ auth: { mode: "password", password: "a long enough passphrase" } });
+  assert.equal((await locked.inject({ method: "GET", url: "/api/learning" })).statusCode, 401);
+  await locked.close();
+});

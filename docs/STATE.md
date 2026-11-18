@@ -21,15 +21,18 @@ Short handover for a fresh session. Update it after each step. The roadmap is in
 - Relevant takes only items from the last 48 hours (`RELEVANT_MAX_AGE_HOURS`),
   so it runs dry like the other cards. Until Step 6 it means "newest unseen",
   not "relevant to you".
+- Learning only nudges (0.5x to 1.5x) and never hides; it is rule-based and each
+  item says why. `GET /api/learning` shows what counts most.
 - No placeholder content, ever. Empty or failed states are stated plainly.
 - Hosting target: Fly.io, one machine, SQLite on a volume (`docs/DEPLOY.md`).
 - Working style: small steps, summary after each, wait for confirmation.
 
 ## Done
 
-Steps 1 to 5: small fixes, ingestion (SSRF-safe, cached, health), ranking,
+Steps 1 to 6: small fixes, ingestion (SSRF-safe, cached, health), ranking,
 password auth, account-stored setup, stored signals with open, Useful and
-Dismiss. Branch `phase1-backend`; `main` is still the old static prototype.
+Dismiss, then learned ranking (per-source and per-word weights from opens,
+Useful and Dismiss, with a Why line on each item). Branch `phase1-backend`; `main` is still the old static prototype.
 
 ## Verified on the owner's machine (Windows, Node 24)
 
@@ -40,13 +43,15 @@ filling when sources carry alert-style headlines.
 
 - Docker build and `fly deploy` (no Docker in the dev sandbox).
 - GitHub Actions deploy workflow (needs `FLY_API_TOKEN`).
-- Step 5 buttons against live feeds (tested with local fixtures only).
+- Step 5 and 6 behaviour against live feeds (tested with local fixtures only).
+  In particular whether the learned boost feels right after real use.
 
 ## Known gaps and ideas
 
 - Attention needs alert-style words; the word list may be too narrow
   (candidates: hack, attack, leak, scam, security, threat).
-- An empty card does not yet say why.
+- An empty card does not yet say why. No way to reset what has been learned
+  (apart from deleting the database).
 - Stored signals are never pruned, and "seen" is permanent: there is no way to
   see an item again once it has gone (removing and re-adding a source is the way
   back; a "Seen" history list or a time window are options if that proves too
@@ -57,6 +62,7 @@ filling when sources carry alert-style headlines.
 
 ## Next
 
-Step 6: ranking learns from opens, Useful and Dismiss (per-user weights, kept
-explainable). Then Step 7 (observability, degraded messaging) and Step 8
-(dogfood and cut over from GitHub Pages).
+Step 7 (observability, per-user feed health, degraded messaging), then Step 8
+(dogfood and cut over from GitHub Pages). Open question: hosting. Cloudflare
+free tier would need a port (Workers + D1, 10 ms CPU limit is the risk); an
+Oracle Always Free VM could run the app unchanged.

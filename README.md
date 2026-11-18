@@ -93,7 +93,8 @@ returns:
 - `status`: `ok`, `partial`, `unavailable` or `no_sources`
 - `channels`: `relevant`, `attention`, `knowing`, `experience`; each is
   an array of up to 3 items, best first, each
-  `{ id, title, link, linkText, source, published, score (1-10), reason, useful }`; an
+  `{ id, title, link, linkText, source, published, score (1-10), reason, useful }`
+  (`reason` is plain language, including any learned boost); an
   empty array means nothing suitable exists
 - `hidden`: `{ seen, dismissed }`, how many items were left out because you were
   already shown them, or dismissed them
@@ -137,6 +138,26 @@ item in a response carries that row's `id`.
 In the app each item has **Useful** and **Dismiss** buttons, and opening a link
 is recorded. A dismissed item shows an **Undo** until the next run. A failed
 save is shown on the item. This data is what Step 6 will learn from.
+
+## Learning from what you do
+
+Ranking is nudged by your own feedback (`server/signals/learn.js`). No model,
+just two kinds of weight worked out from your opens, **Useful** marks and
+dismissals: one per source, one per word in titles.
+
+- Opened counts +1, Useful +2, Dismissed -2. Ignoring an item counts as nothing.
+- Feedback fades with a 30-day half-life, so changing interests take over.
+- Each weight is `sum / (total + 4)`, so one click barely matters and a pattern
+  matters a lot; likes and dismissals of the same thing cancel out.
+- An item's pull is half its source and half its three strongest words. It scales
+  the item's score between 0.5x and 1.5x, so taste nudges the order but never
+  hides anything: a dismissed topic still appears, just later.
+- With no feedback the scale is exactly 1, so nothing changes until you use the
+  buttons.
+- Each item shows why, for example `matches attention cues; boosted: topics you
+  like (quantum, error)` or `ranked lower: a source you dismiss`.
+- `GET /api/learning` lists the sources and words that currently count most.
+  Only the 500 most recent items with feedback are used.
 
 ## Configuration
 

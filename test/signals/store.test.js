@@ -142,3 +142,22 @@ test("forgetting is per user and does nothing for unknown sources", () => {
   assert.equal(store.seenKeys(2).size, 0);
   assert.equal(store.forgetSources(1, ["nothing-here"]), 0);
 });
+
+test("feedbackRows returns only items with feedback, newest first, as plain data", () => {
+  const { store } = setup();
+  const { relevant } = store.recordShown(1, channelsOf(item("Ignored"), item("Opened"), item("Liked"), item("Dismissed")));
+  const id = (t) => relevant.find((i) => i.title === t).id;
+  store.recordOpen(1, id("Opened"), "2026-11-10T00:00:00.000Z");
+  store.updateState(1, id("Liked"), { useful: true }, "2026-11-12T00:00:00.000Z");
+  store.updateState(1, id("Dismissed"), { dismissed: true }, "2026-11-11T00:00:00.000Z");
+
+  const rows = store.feedbackRows(1);
+  assert.deepEqual(rows.map((r) => r.title), ["Liked", "Dismissed", "Opened"]);
+  assert.equal(rows[0].usefulAt, "2026-11-12T00:00:00.000Z");
+  assert.equal(rows[1].dismissedAt, "2026-11-11T00:00:00.000Z");
+  assert.equal(rows[2].openCount, 1);
+  assert.deepEqual(store.feedbackRows(2), [], "another user has none");
+
+  store.updateState(1, id("Liked"), { useful: false });
+  assert.equal(store.feedbackRows(1).some((r) => r.title === "Liked"), false, "undoing removes the feedback");
+});

@@ -20,8 +20,9 @@
 //      RELEVANT_MAX_AGE_HOURS, so it runs dry when nothing recent is left
 //      instead of working back through old items. Undated items are allowed.
 //
-// This is deliberately small and explainable. Step 6 adds per-user learned
-// weights on top of the same structure.
+// This is deliberately small and explainable. Per-user learned weights (see
+// learn.js) scale each candidate's recency score by 0.5x to 1.5x and add a plain
+// reason; with no history the scale is exactly 1.
 
 export const CHANNELS = ["relevant", "attention", "knowing", "experience"];
 
@@ -85,14 +86,24 @@ function toTen(score) {
 /**
  * Assign up to `perChannel` candidates to each channel.
  * @param {Array} candidates
- * @param {{ now?: number, perChannel?: number, relevantMaxAgeHours?: number }} options
+ * @param {{ now?: number, perChannel?: number, relevantMaxAgeHours?: number, affinity?: Function }} options
  */
 export function assignChannels(
   candidates,
-  { now = Date.now(), perChannel = ITEMS_PER_CHANNEL, relevantMaxAgeHours = RELEVANT_MAX_AGE_HOURS } = {},
+  {
+    now = Date.now(),
+    perChannel = ITEMS_PER_CHANNEL,
+    relevantMaxAgeHours = RELEVANT_MAX_AGE_HOURS,
+    // candidate -> { factor, note }: how much this user likes it (see learn.js).
+    affinity = () => ({ factor: 1, note: null }),
+  } = {},
 ) {
   const result = { relevant: [], attention: [], knowing: [], experience: [] };
-  const pool = candidates.map((c) => ({ c, base: baseScore(c, now) }));
+  // Learned taste scales the recency score (0.5x to 1.5x) and may add a note.
+  const pool = candidates.map((c) => {
+    const { factor, note } = affinity(c);
+    return { c, base: baseScore(c, now) * factor, note };
+  });
   const usedSources = new Map();
   const taken = new Set();
 
@@ -112,7 +123,8 @@ export function assignChannels(
     result[channel].push({
       ...best.entry.c,
       score: toTen(best.raw),
-      reason: channel === "relevant" ? "recent item from your sources" : `matches ${channel} cues`,
+      reason: (channel === "relevant" ? "recent item from your sources" : `matches ${channel} cues`)
+        + (best.entry.note ? `; ${best.entry.note}` : ""),
     });
   }
 

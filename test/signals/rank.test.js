@@ -159,3 +159,25 @@ test("the age limit applies to Relevant only; an old item matching a cue still l
   assert.equal(out.attention.length, 1);
   assert.equal(out.relevant.length, 0);
 });
+
+test("an affinity function scales scores and adds its note to the reason", () => {
+  const items = [
+    item("Alpha story", { source: "liked", published: hoursAgo(10) }),
+    item("Beta story", { source: "plain", published: hoursAgo(9) }),
+  ];
+  const plain = assignChannels(items, { now: NOW });
+  assert.equal(plain.relevant[0].title, "Beta story", "newer wins without learning");
+
+  const affinity = (c) => (c.source === "liked" ? { factor: 1.4, note: "boosted: a source you like" } : { factor: 1, note: null });
+  const learned = assignChannels(items, { now: NOW, affinity });
+  assert.equal(learned.relevant[0].title, "Alpha story");
+  assert.equal(learned.relevant[0].reason, "recent item from your sources; boosted: a source you like");
+  assert.equal(learned.relevant[1].reason, "recent item from your sources");
+});
+
+test("a lower factor pushes an item down but never removes it", () => {
+  const items = [item("Alpha story", { source: "disliked", published: hoursAgo(1) }), item("Beta story", { source: "plain", published: hoursAgo(12) })];
+  const affinity = (c) => (c.source === "disliked" ? { factor: 0.5, note: "ranked lower: a source you dismiss" } : { factor: 1, note: null });
+  const out = assignChannels(items, { now: NOW, affinity });
+  assert.deepEqual(out.relevant.map((i) => i.title), ["Beta story", "Alpha story"]);
+});
