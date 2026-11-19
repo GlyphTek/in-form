@@ -76,7 +76,7 @@ passkeys can replace the password later without changing the tables).
 
 `GET /api/auth/me` reports `{ authRequired, authenticated }`; `POST
 /api/auth/login` and `POST /api/auth/logout` do what they say. `GET/PUT
-/api/config` read and replace the account's sources and platforms; `PUT`
+/api/config` read and replace the account's sources; `PUT`
 rejects sources that could never be fetched, with a reason for each.
 
 The frontend works in three modes, detected on load: **local** (no server
@@ -85,7 +85,7 @@ unavailable), **sign-in required**, and **signed in** (setup follows you across
 devices). The first time a browser signs in to an empty account, the setup
 already saved in that browser is carried over once.
 
-Your topics and platforms are saved in the account, not the browser, so
+Your topics and sources are saved in the account, not the browser, so
 clearing browser storage or cache does not remove them. Edits on the setup
 screen (adding or removing) only take effect when you press START; until then
 the screen says "Changes not saved yet" and the browser asks before you leave
@@ -93,7 +93,11 @@ the page.
 
 ## Signals API
 
-`POST /api/signals/generate` with `{ "sources": ["..."], "platforms": ["..."] }`
+The old "where do you participate" platforms were removed. Older pages may still
+send a `platforms` field; it is accepted and ignored. The unused `platforms`
+database table is left in place.
+
+`POST /api/signals/generate` with `{ "sources": ["..."] }` (omit it to use the saved sources)
 returns:
 
 - `status`: `ok`, `partial`, `unavailable` or `no_sources`
@@ -105,8 +109,6 @@ returns:
 - `hidden`: `{ seen, dismissed }`, how many items were left out because you were
   already shown them, or dismissed them
 - `sources`: per-source health (`ok` / `stale` / `error`, item count, error)
-- `platforms`: link-outs only (`url` is `null` when the name is not a known
-  platform or domain)
 
 Channel assignment (`server/signals/rank.js`) is rule-based: recency decay plus
 whole-word cue lists for Attention, Knowing and Experience. Cue-based

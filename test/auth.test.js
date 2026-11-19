@@ -218,7 +218,7 @@ test("signals and config are locked to signed-in users", async () => {
   const { app } = await makeApp();
   assert.equal((await app.inject({ method: "POST", url: "/api/signals/generate", payload: { sources: ["x"] } })).statusCode, 401);
   assert.equal((await app.inject({ method: "GET", url: "/api/config" })).statusCode, 401);
-  assert.equal((await app.inject({ method: "PUT", url: "/api/config", payload: { sources: [], platforms: [] } })).statusCode, 401);
+  assert.equal((await app.inject({ method: "PUT", url: "/api/config", payload: { sources: [] } })).statusCode, 401);
   // Health and static files stay public.
   assert.equal((await app.inject({ url: "/api/health" })).statusCode, 200);
   assert.equal((await app.inject({ url: "/" })).statusCode, 200);

@@ -1,6 +1,6 @@
 // POST /api/signals/generate
 //
-// Body: { sources?: string[], platforms?: string[] }
+// Body: { sources?: string[] } (omitted: the saved sources are used)
 //
 // Requires a signed-in user. Each field the body supplies is used as given (this
 // is how the browser sends its current setup). A field the body omits falls back
@@ -11,7 +11,7 @@
 import { generateSignals } from "../signals/generate.js";
 import { itemKey } from "../store/signals.js";
 import { affinity, buildProfile, summarize } from "../signals/learn.js";
-import { MAX_PLATFORMS, MAX_SOURCES, normalizeList } from "../store/config.js";
+import { MAX_SOURCES, normalizeList } from "../store/config.js";
 
 const bodySchema = {
   type: "object",
@@ -22,11 +22,9 @@ const bodySchema = {
       maxItems: MAX_SOURCES,
       items: { type: "string", minLength: 1, maxLength: 2048 },
     },
-    platforms: {
-      type: "array",
-      maxItems: MAX_PLATFORMS,
-      items: { type: "string", minLength: 1, maxLength: 80 },
-    },
+    // Deprecated: platforms were removed. Older pages may still send them, so
+    // they are accepted and ignored rather than rejected.
+    platforms: { type: "array", maxItems: 20, items: { type: "string", maxLength: 80 } },
   },
 };
 
@@ -54,9 +52,7 @@ export default async function signalRoutes(app, { ingestor, store, signals, gene
     },
     async (request, reply) => {
       const body = request.body ?? {};
-      const stored = body.sources === undefined || body.platforms === undefined ? store.get(request.user.id) : null;
-      const sources = normalizeList(body.sources ?? stored.sources);
-      const platforms = normalizeList(body.platforms ?? stored.platforms);
+      const sources = normalizeList(body.sources ?? store.get(request.user.id).sources);
 
       // Anything already shown to this user is left out, so pressing again gives
       // the next batch instead of the same items.
@@ -66,7 +62,6 @@ export default async function signalRoutes(app, { ingestor, store, signals, gene
       const result = await generateSignals({
         ingestor,
         sources,
-        platforms,
         exclude: (item) => seen.get(itemKey(item)) ?? false,
         affinity: (candidate) => affinity(profile, candidate),
         log: request.log,

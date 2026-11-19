@@ -31,9 +31,9 @@ async function makeApp(overrides = {}) {
 
 const post = (app, payload) => app.inject({ method: "POST", url: "/api/signals/generate", payload });
 
-test("returns channels, per-source status and platform links", async () => {
+test("returns channels and per-source status", async () => {
   const app = await makeApp();
-  const res = await post(app, { sources: ["weather"], platforms: ["GitHub"] });
+  const res = await post(app, { sources: ["weather"] });
   assert.equal(res.statusCode, 200);
   assert.equal(res.headers["cache-control"], "no-store");
   const body = res.json();
@@ -41,7 +41,6 @@ test("returns channels, per-source status and platform links", async () => {
   assert.match(body.channels.attention[0].title, /Storm warning/);
   assert.equal(body.channels.attention[0].linkText, "news.example.com");
   assert.equal(body.sources[0].input, "weather");
-  assert.deepEqual(body.platforms, [{ name: "GitHub", url: "https://github.com" }]);
   await app.close();
 });
 
@@ -211,7 +210,7 @@ test("seen history belongs to the account, not the request", async () => {
   const app = await makeApp();
   await post(app, { sources: ["weather"] });
   // Same sources supplied differently (stored config instead of body) still see the history.
-  await app.inject({ method: "PUT", url: "/api/config", payload: { sources: ["weather"], platforms: [] } });
+  await app.inject({ method: "PUT", url: "/api/config", payload: { sources: ["weather"] } });
   const again = (await app.inject({ method: "POST", url: "/api/signals/generate", payload: {} })).json();
   assert.equal(Object.values(again.channels).flat().length, 0);
   await app.close();
@@ -247,7 +246,7 @@ test("signal actions require sign-in when auth is on", async () => {
 
 // --- Removing a source and adding it back starts it fresh -------------------------
 
-const setSources = (app, sources) => app.inject({ method: "PUT", url: "/api/config", payload: { sources, platforms: [] } });
+const setSources = (app, sources) => app.inject({ method: "PUT", url: "/api/config", payload: { sources } });
 const generateStored = async (app) => (await app.inject({ method: "POST", url: "/api/signals/generate", payload: {} })).json();
 const shownCount = (r) => Object.values(r.channels).flat().length;
 

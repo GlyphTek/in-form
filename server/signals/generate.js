@@ -12,7 +12,6 @@
 //   hidden   { seen, dismissed }: items left out because the user was already
 //            shown them, or dismissed them (see `exclude`)
 //   sources  per-source health so the UI can say exactly what is broken
-//   platforms link-outs only; never turned into fake items
 
 import { assignChannels, CHANNELS } from "./rank.js";
 import { normalizeUrl, titleKey } from "../ingest/normalize.js";
@@ -25,43 +24,6 @@ function linkLabel(link) {
   } catch {
     return "Open link";
   }
-}
-
-// Platform names are free text. Known names map to their home page; anything
-// else only becomes a link if it looks like a domain. Never invent a URL.
-const KNOWN_PLATFORMS = {
-  linkedin: "https://www.linkedin.com",
-  github: "https://github.com",
-  youtube: "https://www.youtube.com",
-  x: "https://x.com",
-  twitter: "https://x.com",
-  reddit: "https://www.reddit.com",
-  facebook: "https://www.facebook.com",
-  instagram: "https://www.instagram.com",
-  medium: "https://medium.com",
-  stackoverflow: "https://stackoverflow.com",
-  "stack overflow": "https://stackoverflow.com",
-  mastodon: "https://joinmastodon.org",
-  bluesky: "https://bsky.app",
-  discord: "https://discord.com",
-  slack: "https://slack.com",
-  substack: "https://substack.com",
-  tiktok: "https://www.tiktok.com",
-  twitch: "https://www.twitch.tv",
-};
-
-export function platformLink(name) {
-  const key = name.trim().toLowerCase();
-  if (KNOWN_PLATFORMS[key]) return KNOWN_PLATFORMS[key];
-  if (/^(?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:[/:?#]\S*)?$/i.test(key)) {
-    try {
-      const url = new URL(/^https?:\/\//i.test(key) ? name.trim() : `https://${name.trim()}`);
-      if (url.protocol === "http:" || url.protocol === "https:") return url.href;
-    } catch {
-      /* fall through */
-    }
-  }
-  return null;
 }
 
 async function mapWithLimit(values, limit, fn) {
@@ -90,7 +52,6 @@ function withDeadline(promise, ms) {
 export async function generateSignals({
   ingestor,
   sources = [],
-  platforms = [],
   now = Date.now,
   concurrency = 5,
   deadlineMs = 25_000,
@@ -102,8 +63,6 @@ export async function generateSignals({
   log,
 }) {
   const startedAt = now();
-  const platformLinks = platforms.map((name) => ({ name, url: platformLink(name) }));
-
   if (sources.length === 0) {
     return {
       status: "no_sources",
@@ -111,7 +70,6 @@ export async function generateSignals({
       channels: Object.fromEntries(CHANNELS.map((c) => [c, []])),
       hidden: { seen: 0, dismissed: 0 },
       sources: [],
-      platforms: platformLinks,
     };
   }
 
@@ -193,6 +151,5 @@ export async function generateSignals({
     channels,
     hidden,
     sources: sourceReports,
-    platforms: platformLinks,
   };
 }

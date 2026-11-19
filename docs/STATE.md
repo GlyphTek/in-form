@@ -9,8 +9,8 @@ Short handover for a fresh session. Update it after each step. The roadmap is in
 - One owner account, one shared password (`INFORM_PASSWORD`, 12+ chars). Cookie
   session, hashed token stored. Magic link or passkeys later, same tables.
 - Sources are free text: topic keyword, site URL or feed URL, auto-detected.
-  Keywords use Google News RSS (30-day window, `NEWS_WINDOW`). Platforms are
-  link-outs and mild hints only; they never produce items.
+  Keywords use Google News RSS (30-day window, `NEWS_WINDOW`). The old
+  "platforms" idea was removed (the setup is topics, sites and feeds only).
 - Up to 3 items per RAKE channel, best first. Cue-based channels (Attention,
   Experience, Knowing) fill first; Relevant takes the best of the rest.
 - Each item is shown once per account. Pressing TIFA again gives the next

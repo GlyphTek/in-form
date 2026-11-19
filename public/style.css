@@ -606,43 +606,6 @@ footer{
     display:none;
 }
 
-.platforms{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:6px;
-    margin-top:4px;
-}
-
-.platforms label{
-
-    display:flex;
-    align-items:center;
-    gap:8px;
-
-    padding:6px 8px;
-
-    background:rgba(255,255,255,.03);
-
-    border:1px solid rgba(0,255,136,.08);
-
-    border-radius:6px;
-
-    color:var(--text);
-
-    cursor:pointer;
-
-    font-size: 0.70rem;
-}
-
-.platforms input[type="checkbox"]{
-
-    accent-color:#00ff88;
-
-    width:14px;
-    height:18px;
-
-    flex-shrink:0;
-}
 
 button[type="button"]{
 

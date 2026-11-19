@@ -288,7 +288,7 @@ function rotateAppWord() {
 setInterval(rotateAppWord, 3500);
 
 /* ==========================
-   SOURCE & PLATFORM MANAGEMENT
+   SOURCE MANAGEMENT
 ========================== */
 
 /* Escape untrusted text before inserting it into HTML. */
@@ -312,15 +312,10 @@ function safeUrl(value) {
 }
 
 let userSources = [];
-let userPlatforms = [];
 
 const sourceInput = document.getElementById("source-input");
 const addSourceBtn = document.getElementById("add-source-btn");
 const sourcesList = document.getElementById("sources-list");
-
-const platformInput = document.getElementById("platform-input");
-const addPlatformBtn = document.getElementById("add-platform-btn");
-const platformsList = document.getElementById("platforms-list");
 
 function renderSources() {
     if (!sourcesList) return;
@@ -345,29 +340,6 @@ function renderSources() {
     });
 }
 
-function renderPlatforms() {
-    if (!platformsList) return;
-    platformsList.innerHTML = "";
-
-    userPlatforms.forEach((platform, index) => {
-        const li = document.createElement("li");
-        li.innerHTML = `
-            <span>${escapeHtml(platform)}</span>
-            <button data-index="${index}">×</button>
-        `;
-        platformsList.appendChild(li);
-    });
-
-    platformsList.querySelectorAll("button").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const index = parseInt(btn.dataset.index);
-            userPlatforms.splice(index, 1);
-            setSetupDirty(true);
-            renderPlatforms();
-        });
-    });
-}
-
 if (addSourceBtn) {
     addSourceBtn.addEventListener("click", () => {
         const value = sourceInput.value.trim();
@@ -382,24 +354,6 @@ if (addSourceBtn) {
     sourceInput?.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
             addSourceBtn.click();
-        }
-    });
-}
-
-if (addPlatformBtn) {
-    addPlatformBtn.addEventListener("click", () => {
-        const value = platformInput.value.trim();
-        if (value && !userPlatforms.includes(value)) {
-            userPlatforms.push(value);
-            setSetupDirty(true);
-            platformInput.value = "";
-            renderPlatforms();
-        }
-    });
-
-    platformInput?.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-            addPlatformBtn.click();
         }
     });
 }
@@ -559,8 +513,8 @@ async function preloadSetup() {
     if (accountMode() === "account") {
         try {
             const remote = await fetchAccountConfig();
-            const remoteHasData = remote.sources.length > 0 || remote.platforms.length > 0;
-            const localHasData = config.sources.length > 0 || config.platforms.length > 0;
+            const remoteHasData = remote.sources.length > 0;
+            const localHasData = config.sources.length > 0;
 
             if (!remoteHasData && localHasData && !accountSynced()) {
                 try {
@@ -570,7 +524,7 @@ async function preloadSetup() {
                     console.warn("Could not carry this device's setup to your account", err);
                 }
             } else {
-                config = { sources: remote.sources, platforms: remote.platforms };
+                config = { sources: remote.sources };
             }
             markAccountSynced();
         } catch (err) {
@@ -583,9 +537,7 @@ async function preloadSetup() {
     }
 
     userSources = [...config.sources];
-    userPlatforms = [...config.platforms];
     renderSources();
-    renderPlatforms();
     setSetupDirty(false);
     if (setupError) setupError.textContent = "";
     return "setup";
@@ -655,8 +607,7 @@ if (startBtn) {
 
         if (setupError) setupError.textContent = "";
         const userConfig = {
-            sources: [...userSources],
-            platforms: [...userPlatforms]
+            sources: [...userSources]
         };
 
         let syncNote = "";
@@ -729,7 +680,6 @@ const checkElements = {
 const activeSourcesWrapper = document.getElementById("active-sources-wrapper");
 const activeSourcesToggle = document.getElementById("active-sources-toggle");
 const activeSourcesPanel = document.getElementById("active-sources-panel");
-const activePlatformsList = document.getElementById("active-platforms-list");
 const activeSitesList = document.getElementById("active-sites-list");
 
 let sourcesPanelOpen = false;
@@ -808,15 +758,12 @@ function loadConfig() {
     try {
         const saved = JSON.parse(localStorage.getItem("inform_config"));
         if (saved && typeof saved === "object") {
-            return {
-                sources: Array.isArray(saved.sources) ? saved.sources : [],
-                platforms: Array.isArray(saved.platforms) ? saved.platforms : []
-            };
+            return { sources: Array.isArray(saved.sources) ? saved.sources : [] };
         }
     } catch (err) {
         console.warn("Could not read saved configuration", err);
     }
-    return { sources: [], platforms: [] };
+    return { sources: [] };
 }
 
 async function requestSignals(config) {
@@ -827,10 +774,7 @@ async function requestSignals(config) {
         const response = await fetch("/api/signals/generate", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-                sources: config.sources,
-                platforms: config.platforms
-            }),
+            body: JSON.stringify({ sources: config.sources }),
             signal: controller.signal
         });
 
@@ -926,29 +870,6 @@ function renderActiveSources(config, result) {
     if (logoutBtn) {
         logoutBtn.style.display = authState.authRequired && authState.authenticated ? "block" : "none";
     }
-
-    // Platforms are link-outs only.
-    const platforms = result ? result.platforms || [] : config.platforms.map(name => ({ name, url: null }));
-    renderListItems(
-        activePlatformsList,
-        platforms.map(p => () => {
-            const li = document.createElement("li");
-            const url = p.url ? safeUrl(p.url) : "#";
-            if (url !== "#") {
-                const a = document.createElement("a");
-                a.href = url;
-                a.target = "_blank";
-                a.rel = "noopener noreferrer";
-                a.style.color = "var(--secondary)";
-                a.textContent = p.name;
-                li.appendChild(a);
-            } else {
-                li.textContent = p.name;
-            }
-            return li;
-        }),
-        "None selected"
-    );
 
     // Sites show what actually happened to each source.
     const sites = result
@@ -1133,8 +1054,8 @@ async function runTifa() {
 }
 
 if (activeSourcesPanel) {
-    // The panel sits inside the clickable TIFA card; keep its clicks (including
-    // platform links) from re-triggering generation.
+    // The panel sits inside the clickable TIFA card; keep its clicks from
+    // re-triggering generation.
     activeSourcesPanel.addEventListener("click", (e) => e.stopPropagation());
 }
 
