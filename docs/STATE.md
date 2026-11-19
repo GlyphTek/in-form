@@ -8,7 +8,7 @@ Short handover for a fresh session. Update it after each step. The roadmap is in
 - Node 22.13+, Fastify 5, SQLite through built-in `node:sqlite` (no native build).
 - One owner account, one shared password (`INFORM_PASSWORD`, 12+ chars). Cookie
   session, hashed token stored. Magic link or passkeys later, same tables.
-- Sources are free text: topic keyword, site URL or feed URL, auto-detected.
+- Sources are topic chips (`topic:<id>`, `server/topics.js`) plus a tucked-away "add your own" box for free text (keyword, site URL or feed URL, auto-detected). Topic phrases are unverified against live Google News: check with `npm run ingest -- "topic:science"`.
   Keywords use Google News RSS (30-day window, `NEWS_WINDOW`). The old
   "platforms" idea was removed (the setup is topics, sites and feeds only).
 - Up to 3 items per RAKE channel, best first. Cue-based channels (Attention,

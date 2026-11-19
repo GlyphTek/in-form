@@ -31,11 +31,11 @@ See `docs/DEPLOY.md` (Fly.io with a volume for the database; GitHub Pages cannot
 
 ## Feed ingestion (`server/ingest/`)
 
-A source is whatever the user types: a topic keyword, a site URL, or a feed URL.
+A source is a topic chip (`topic:<id>`, defined in `server/topics.js`: Technology, Science, News, Sport, Education, Religion, Relationships and wellbeing) or, under "Add your own", a keyword, a site URL, or a feed URL. `GET /api/topics` lists the chips. A topic is fetched as a Google News search for its tuned phrase and stored as a `keyword` row.
 
 | File | Job |
 |---|---|
-| `detect.js` | Classify input as `keyword` / `site` / `feed` (no network) |
+| `detect.js` | Classify input as `topic` / `keyword` / `site` / `feed` (no network) |
 | `ssrf.js` | URL validation and private-address blocking |
 | `fetcher.js` | Hardened fetch: timeout, size cap, per-hop redirect checks |
 | `parse.js` | RSS/Atom to clean items (tags stripped, http(s) links only) |

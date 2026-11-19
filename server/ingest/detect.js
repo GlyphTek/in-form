@@ -3,6 +3,7 @@
 //   feed     a URL that looks like an RSS/Atom feed
 //   site     any other URL (we discover its feed when resolving)
 //   keyword  anything else; becomes a news search
+//   topic    "topic:<id>", one of the built-in topic chips (server/topics.js)
 //
 // Detection is purely syntactic and never touches the network. A URL that looks
 // like a site but actually serves a feed is handled at resolve time, so these
@@ -12,6 +13,7 @@
 // is a well-known TLD. Wrap text in quotes to force keyword treatment.
 
 import { IngestError } from "./errors.js";
+import { TOPIC_PREFIX, getTopic } from "../topics.js";
 
 const COMMON_TLDS = new Set(
   (
@@ -57,6 +59,13 @@ export function detectSource(raw) {
   if (typeof raw !== "string") throw new IngestError("invalid_input", "Source must be text");
   const input = raw.trim().replace(/\s+/g, " ");
   if (!input) throw new IngestError("invalid_input", "Source is empty");
+
+  if (input.toLowerCase().startsWith(TOPIC_PREFIX)) {
+    const id = input.slice(TOPIC_PREFIX.length).toLowerCase();
+    const topic = getTopic(id);
+    if (!topic) throw new IngestError("invalid_input", `Unknown topic "${id.slice(0, 40)}"`);
+    return { kind: "topic", input, query: topic.query, label: topic.label, reason: "topic" };
+  }
 
   const quoted = /^(["'“‘])(.+)(["'”’])$/.exec(input);
   if (quoted) return keyword(quoted[2].trim(), "quoted");

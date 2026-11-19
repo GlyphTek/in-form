@@ -119,6 +119,7 @@ export async function generateSignals({
     return {
       input: result.input,
       kind: result.kind,
+      label: result.label ?? null,
       status: result.status,
       itemCount: result.items.length,
       fetchedAt: result.fetchedAt ?? null,

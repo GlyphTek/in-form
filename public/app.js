@@ -317,11 +317,41 @@ const sourceInput = document.getElementById("source-input");
 const addSourceBtn = document.getElementById("add-source-btn");
 const sourcesList = document.getElementById("sources-list");
 
+const TOPIC_PREFIX = "topic:";
+const FALLBACK_TOPICS = [
+    ["technology", "Technology"], ["science", "Science"], ["news", "News"], ["sport", "Sport"],
+    ["education", "Education"], ["religion", "Religion"], ["relationships-wellbeing", "Relationships and wellbeing"]
+].map(([id, label]) => ({ id, label, source: TOPIC_PREFIX + id }));
+
+let topics = FALLBACK_TOPICS;
+const topicChips = document.getElementById("topic-chips");
+const customSources = document.getElementById("custom-sources");
+
+function topicLabel(input) {
+    const t = topics.find(x => x.source === String(input).toLowerCase());
+    return t ? t.label : input;
+}
+
+async function loadTopics() {
+    try {
+        const res = await apiFetch("/api/topics");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data.topics) && data.topics.length) topics = data.topics;
+    } catch {
+        /* keep the built-in list */
+    }
+    renderSources();
+}
+
 function renderSources() {
+    renderTopicChips();
     if (!sourcesList) return;
     sourcesList.innerHTML = "";
 
+    // Topic chips are shown as chips; only the user's own entries are listed here.
     userSources.forEach((source, index) => {
+        if (source.toLowerCase().startsWith(TOPIC_PREFIX)) return;
         const li = document.createElement("li");
         li.innerHTML = `
             <span>${escapeHtml(source)}</span>
@@ -329,6 +359,7 @@ function renderSources() {
         `;
         sourcesList.appendChild(li);
     });
+    if (customSources && sourcesList.children.length) customSources.open = true;
 
     sourcesList.querySelectorAll("button").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -337,6 +368,30 @@ function renderSources() {
             setSetupDirty(true);
             renderSources();
         });
+    });
+}
+
+function renderTopicChips() {
+    if (!topicChips) return;
+    topicChips.innerHTML = "";
+    const chosen = new Set(userSources.map(s => s.toLowerCase()));
+    topics.forEach(topic => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "topic-chip";
+        btn.dataset.topic = topic.id;
+        btn.textContent = topic.label;
+        const on = chosen.has(topic.source);
+        btn.classList.toggle("selected", on);
+        btn.setAttribute("aria-pressed", String(on));
+        btn.addEventListener("click", () => {
+            const i = userSources.findIndex(s => s.toLowerCase() === topic.source);
+            if (i >= 0) userSources.splice(i, 1);
+            else userSources.push(topic.source);
+            setSetupDirty(true);
+            renderSources();
+        });
+        topicChips.appendChild(btn);
     });
 }
 
@@ -538,6 +593,7 @@ async function preloadSetup() {
 
     userSources = [...config.sources];
     renderSources();
+    loadTopics();
     setSetupDirty(false);
     if (setupError) setupError.textContent = "";
     return "setup";
@@ -884,7 +940,7 @@ function renderActiveSources(config, result) {
             else if (s.status === "stale") note = "⚠ showing older data";
             else if (s.status === "error") note = `✗ ${s.error ? s.error.message : "unavailable"}`;
             else note = "not checked";
-            li.textContent = `${s.input}: ${note}`;
+            li.textContent = `${s.label || topicLabel(s.input)}: ${note}`;
             return li;
         }),
         "None added"

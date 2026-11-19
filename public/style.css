@@ -1085,3 +1085,40 @@ button[type="button"]:hover{
 .setup-unsaved[hidden]{
     display:none;
 }
+
+
+/* Topic chips */
+.topic-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.topic-chip {
+    background: rgba(0, 255, 136, 0.05);
+    border: 1px solid var(--border);
+    color: inherit;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.topic-chip.selected {
+    background: rgba(0, 255, 136, 0.2);
+    border-color: rgba(0, 255, 136, 0.6);
+}
+
+.custom-sources {
+    margin-bottom: 16px;
+    text-align: left;
+}
+
+.custom-sources summary {
+    cursor: pointer;
+    font-size: 0.8rem;
+    opacity: 0.8;
+    margin-bottom: 10px;
+}

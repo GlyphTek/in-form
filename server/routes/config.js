@@ -6,6 +6,7 @@
 // per source instead of failing silently later.
 
 import { detectSource } from "../ingest/detect.js";
+import { TOPICS } from "../topics.js";
 import { MAX_SOURCES, normalizeList } from "../store/config.js";
 
 const putSchema = {
@@ -30,6 +31,12 @@ export default async function configRoutes(app, { store, signals }) {
     return store.get(request.user.id);
   });
 
+  // The topic chips offered on the setup screen.
+  app.get("/api/topics", { preHandler: app.requireAuth }, async (request, reply) => {
+    reply.header("cache-control", "no-store");
+    return { topics: TOPICS.map(({ id, label }) => ({ id, label, source: `topic:${id}` })) };
+  });
+
   app.put("/api/config", { schema: { body: putSchema }, preHandler: app.requireAuth }, async (request, reply) => {
     reply.header("cache-control", "no-store");
     const inputs = normalizeList(request.body.sources);
@@ -38,7 +45,9 @@ export default async function configRoutes(app, { store, signals }) {
     const invalid = [];
     for (const input of inputs) {
       try {
-        sources.push({ input, kind: detectSource(input).kind });
+        const kind = detectSource(input).kind;
+        // The table only knows feed/site/keyword; a topic is a keyword search.
+        sources.push({ input, kind: kind === "topic" ? "keyword" : kind });
       } catch (err) {
         invalid.push({ input, message: err.message });
       }

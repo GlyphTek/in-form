@@ -182,3 +182,27 @@ test("RELEVANT_MAX_AGE_HOURS defaults to 48 and is clamped to 1..720", () => {
   assert.equal(loadConfig({ INFORM_AUTH: "off", RELEVANT_MAX_AGE_HOURS: "99999" }).relevantMaxAgeHours, 720);
   assert.equal(loadConfig({ INFORM_AUTH: "off", RELEVANT_MAX_AGE_HOURS: "soon" }).relevantMaxAgeHours, 48);
 });
+
+test("GET /api/topics lists the topic chips and needs sign-in", async () => {
+  const { app, headers } = await makeApp();
+  assert.equal((await app.inject({ method: "GET", url: "/api/topics" })).statusCode, 401);
+  const res = await app.inject({ method: "GET", url: "/api/topics", headers });
+  assert.equal(res.statusCode, 200);
+  const { topics } = res.json();
+  assert.deepEqual(topics.map((t) => t.label), [
+    "Technology", "Science", "News", "Sport", "Education", "Religion", "Relationships and wellbeing",
+  ]);
+  assert.ok(topics.every((t) => t.source === `topic:${t.id}`));
+  await app.close();
+});
+
+test("topic sources save (stored as keyword) and unknown topics are rejected", async () => {
+  const { app, db, headers } = await makeApp();
+  const ok = await put(app, headers, { sources: ["topic:technology", "topic:relationships-wellbeing"] });
+  assert.equal(ok.statusCode, 200);
+  assert.deepEqual(db.prepare("SELECT kind FROM sources ORDER BY position").all().map((r) => r.kind), ["keyword", "keyword"]);
+  const bad = await put(app, headers, { sources: ["topic:nonsense"] });
+  assert.equal(bad.statusCode, 400);
+  assert.match(bad.json().message, /Unknown topic/);
+  await app.close();
+});

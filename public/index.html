@@ -62,12 +62,16 @@
 
         <label>WHAT FORMS YOUR DAY?</label>
 
-        <div class="source-input-row">
-            <input type="text" id="source-input" placeholder="Enter a topic, site or URL">
-            <button type="button" id="add-source-btn">+ Add Source</button>
-        </div>
+        <div id="topic-chips" class="topic-chips" role="group" aria-label="Topics"></div>
 
-        <ul id="sources-list" class="sources-list"></ul>
+        <details id="custom-sources" class="custom-sources">
+            <summary>Add your own topic, site or URL</summary>
+            <div class="source-input-row">
+                <input type="text" id="source-input" placeholder="Enter a topic, site or URL">
+                <button type="button" id="add-source-btn">+ Add Source</button>
+            </div>
+            <ul id="sources-list" class="sources-list"></ul>
+        </details>
 
 
         <div id="setup-error" class="form-error" role="alert"></div>

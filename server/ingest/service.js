@@ -203,8 +203,8 @@ export function createIngestor({
 
   async function resolve(input) {
     const detected = detectSource(input); // throws IngestError("invalid_input")
-    if (detected.kind === "keyword") {
-      return { kind: "keyword", input: detected.input, feedUrl: newsUrl(detected.query) };
+    if (detected.kind === "keyword" || detected.kind === "topic") {
+      return { kind: detected.kind, input: detected.input, label: detected.label, feedUrl: newsUrl(detected.query) };
     }
 
     return shared(`resolve:${detected.url}`, async () => {
@@ -241,7 +241,7 @@ export function createIngestor({
     try {
       const resolved = await resolve(input);
       const feed = await loadFeed(resolved.feedUrl);
-      return { input, kind: resolved.kind, feedUrl: resolved.feedUrl, ...feed };
+      return { input, kind: resolved.kind, label: resolved.label ?? null, feedUrl: resolved.feedUrl, ...feed };
     } catch (err) {
       return {
         input,
