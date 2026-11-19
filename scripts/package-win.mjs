@@ -2,6 +2,7 @@
 //
 //   node scripts/package-win.mjs                    fetch node.exe from npm
 //   node scripts/package-win.mjs --node-exe <path>  use a node.exe you supply
+//   node scripts/package-win.mjs --lite             no node.exe (needs Node 22.13+ installed), about 1/10 the size
 //
 // The package is a plain folder: node.exe, the app, its (pure JavaScript)
 // dependencies, and a start.bat that runs it for one person on this computer.
@@ -27,7 +28,8 @@ export const NODE_TARBALL_INTEGRITY =
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-const name = `in-form-${pkg.version}-win-x64`;
+const lite = process.argv.includes("--lite");
+const name = `in-form-${pkg.version}-win-x64${lite ? "-lite" : ""}`;
 const dist = path.join(root, "dist");
 const out = path.join(dist, name);
 
@@ -50,13 +52,36 @@ export const START_BAT = [
   "echo   Keep this window open while you use it. Close it to stop IN-FORM.",
   "echo.",
   "",
+  "rem Use the node.exe shipped next to this file; the lite package uses the Node on this computer.",
+  'set "NODE_CMD=%~dp0node.exe"',
+  'if exist "%NODE_CMD%" goto run',
+  "where node >nul 2>nul || goto nonode",
+  `node -e "const [a,b]=process.versions.node.split('.').map(Number);process.exit(a>22||(a===22&&b>=13)?0:1)" || goto oldnode`,
+  'set "NODE_CMD=node"',
+  "",
+  ":run",
   'start "" /b cmd /c "ping -n 4 127.0.0.1 >nul && start http://127.0.0.1:%PORT%"',
-  '"%~dp0node.exe" --disable-warning=ExperimentalWarning server\\index.js',
+  '"%NODE_CMD%" --disable-warning=ExperimentalWarning server\\index.js',
   "",
   "echo.",
   "echo   IN-FORM stopped. If it says the port is in use, another copy is probably",
   "echo   still running: close its window, or set PORT to another number and retry.",
   "pause",
+  "exit /b 0",
+  "",
+  ":nonode",
+  "echo.",
+  "echo   This lite package needs Node.js 22.13 or newer, and none was found.",
+  "echo   Install it from https://nodejs.org, or download the full IN-FORM package.",
+  "pause",
+  "exit /b 1",
+  "",
+  ":oldnode",
+  "echo.",
+  "echo   The Node.js on this computer is older than 22.13. Update it from",
+  "echo   https://nodejs.org, or download the full IN-FORM package.",
+  "pause",
+  "exit /b 1",
   "",
 ].join("\r\n");
 
@@ -82,6 +107,31 @@ export const README_TXT = [
   "",
 ].join("\r\n");
 
+// Files in node_modules that are never needed to run the app (type definitions,
+// docs, source maps, tests). Licence files are always kept.
+const DROP_FILE = /\.(md|markdown|map|d\.ts|d\.mts|d\.cts)$/i;
+const KEEP_FILE = /^(licen[sc]e|notice|copying)/i;
+const DROP_DIR = new Set(["test", "tests", "__tests__", "docs", "example", "examples", "benchmark", "benchmarks", ".github"]);
+
+export function pruneModules(dir) {
+  let removed = 0;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (DROP_DIR.has(entry.name)) {
+        removed += 1;
+        fs.rmSync(full, { recursive: true, force: true });
+      } else {
+        removed += pruneModules(full);
+      }
+    } else if (DROP_FILE.test(entry.name) && !KEEP_FILE.test(entry.name)) {
+      fs.rmSync(full);
+      removed += 1;
+    }
+  }
+  return removed;
+}
+
 function sha(file, algo) {
   return createHash(algo).update(fs.readFileSync(file)).digest("hex");
 }
@@ -102,13 +152,13 @@ function main() {
   const flag = process.argv.indexOf("--node-exe");
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "inform-pack-"));
   try {
-    const nodeExe = flag > -1 ? path.resolve(process.argv[flag + 1]) : fetchNodeExe(tmp);
-    if (!fs.existsSync(nodeExe)) throw new Error(`node.exe not found at ${nodeExe}`);
+    const nodeExe = lite ? null : flag > -1 ? path.resolve(process.argv[flag + 1]) : fetchNodeExe(tmp);
+    if (nodeExe && !fs.existsSync(nodeExe)) throw new Error(`node.exe not found at ${nodeExe}`);
 
     fs.rmSync(out, { recursive: true, force: true });
     fs.mkdirSync(out, { recursive: true });
 
-    fs.copyFileSync(nodeExe, path.join(out, "node.exe"));
+    if (nodeExe) fs.copyFileSync(nodeExe, path.join(out, "node.exe"));
     for (const dir of ["server", "public"]) fs.cpSync(path.join(root, dir), path.join(out, dir), { recursive: true });
     for (const file of ["package.json", "package-lock.json"]) fs.copyFileSync(path.join(root, file), path.join(out, file));
 
@@ -116,6 +166,8 @@ function main() {
     // IN-FORM depends on is plain JavaScript.
     const npm = process.platform === "win32" ? "npm.cmd" : "npm";
     execFileSync(npm, ["ci", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund"], { cwd: out, stdio: "inherit", shell: process.platform === "win32" });
+
+    pruneModules(path.join(out, "node_modules"));
 
     fs.writeFileSync(path.join(out, "start.bat"), START_BAT);
     fs.writeFileSync(path.join(out, "README.txt"), README_TXT);
@@ -125,12 +177,16 @@ function main() {
     if (process.platform === "win32") {
       execFileSync("tar", ["-a", "-c", "-f", zip, "-C", dist, name], { stdio: "inherit" });
     } else {
-      execFileSync("zip", ["-q", "-r", zip, name], { cwd: dist, stdio: "inherit" });
+      execFileSync("zip", ["-q", "-9", "-r", zip, name], { cwd: dist, stdio: "inherit" });
     }
 
     console.log(`\nBuilt ${path.relative(root, zip)} (${(fs.statSync(zip).size / 1048576).toFixed(1)} MB)`);
-    console.log(`node.exe sha256: ${sha(path.join(out, "node.exe"), "sha256")}`);
-    console.log(`Compare with the win-x64/node.exe line at https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt`);
+    if (nodeExe) {
+      console.log(`node.exe sha256: ${sha(path.join(out, "node.exe"), "sha256")}`);
+      console.log(`Compare with the win-x64/node.exe line at https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt`);
+    } else {
+      console.log("Lite package: no node.exe included; it needs Node.js 22.13 or newer installed.");
+    }
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

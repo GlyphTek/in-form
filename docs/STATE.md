@@ -94,3 +94,6 @@ Oracle Always Free VM could run the app unchanged.
 - Source reports now carry `editions` (per regional fetch) and the generate log line lists
   them, e.g. `topic:news@nz ok 14`.
 - Unsigned binaries: SmartScreen warnings are expected; signing needs a paid certificate.
+- Package size: full zip about 34 MB (node.exe is about 33 MB of that); `--lite` zip about
+  2 MB uses the Node already installed (start.bat checks it is 22.13+). node_modules is pruned
+  (docs, .d.ts, maps, tests; licences kept). The pruned tree passes the test suite.

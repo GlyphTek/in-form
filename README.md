@@ -209,7 +209,9 @@ request as `region: { scope, area }`.
 
 ## Download and run (Windows, portable)
 
-1. Download `in-form-<version>-win-x64.zip` from the Releases page.
+1. Download `in-form-<version>-win-x64.zip` from the Releases page (about 34 MB; it
+   includes everything). If you already have Node.js 22.13 or newer installed, the
+   `-lite.zip` is about 2 MB and works the same way.
 2. Right-click the zip, choose Properties, tick Unblock (if shown), then Extract All.
 3. Open the folder and double-click `start.bat`. Your browser opens on IN-FORM.
    Keep the black window open while you use it; close it to stop.
@@ -228,7 +230,12 @@ Mac and Linux builds are not made yet; they can run from source (`npm install`,
 
 ### Building the package
 
-    npm run package:win
+    npm run package:win             # full: includes node.exe (about 34 MB)
+    node scripts/package-win.mjs --lite   # lite: no node.exe (about 2 MB)
+
+Most of the full package is `node.exe` itself (about 33 MB zipped), so it cannot get
+much smaller without a custom Node build. Unneeded files in `node_modules` (docs,
+type definitions, source maps, tests) are removed; licence files are kept.
 
 Builds `dist/in-form-<version>-win-x64.zip` on any OS (needs `zip` on Linux/Mac;
 Windows uses its built-in `tar`). `node.exe` is fetched from the `node-win-x64` npm

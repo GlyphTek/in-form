@@ -28,27 +28,29 @@ jobs:
       - run: npm ci
       - run: npm test
 
-      - name: Build the Windows package
-        run: node scripts/package-win.mjs
+      - name: Build the Windows packages (full, and lite without node.exe)
+        run: |
+          node scripts/package-win.mjs
+          node scripts/package-win.mjs --lite
 
       # node.exe came from npm; check it is byte-for-byte the official one.
       - name: Check node.exe against nodejs.org
         run: |
           VERSION=$(node -e 'import("./scripts/package-win.mjs").then(m => console.log(m.NODE_VERSION))')
           EXPECTED=$(curl -fsSL "https://nodejs.org/dist/v${VERSION}/SHASUMS256.txt" | grep ' win-x64/node.exe$' | cut -d' ' -f1)
-          ACTUAL=$(sha256sum dist/*/node.exe | cut -d' ' -f1)
+          ACTUAL=$(sha256sum dist/in-form-*-win-x64/node.exe | cut -d' ' -f1)
           echo "expected $EXPECTED"
           echo "actual   $ACTUAL"
           test -n "$EXPECTED" && test "$EXPECTED" = "$ACTUAL"
 
       - name: Checksum
-        run: cd dist && sha256sum in-form-*-win-x64.zip > SHA256SUMS.txt && cat SHA256SUMS.txt
+        run: cd dist && sha256sum in-form-*.zip > SHA256SUMS.txt && cat SHA256SUMS.txt
 
       - uses: actions/upload-artifact@v4
         with:
           name: in-form-win-x64
           path: |
-            dist/in-form-*-win-x64.zip
+            dist/in-form-*.zip
             dist/SHA256SUMS.txt
 
       - name: Publish the release
@@ -56,6 +58,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" dist/in-form-*-win-x64.zip dist/SHA256SUMS.txt \
+          gh release create "${GITHUB_REF_NAME}" dist/in-form-*.zip dist/SHA256SUMS.txt \
             --title "IN-FORM ${GITHUB_REF_NAME}" \
-            --notes "Windows (portable): download the zip, extract it, double-click start.bat. Not code-signed, so Windows may warn; see README.txt inside the zip. SHA-256 of the zip is in SHA256SUMS.txt."
+            --notes "Windows (portable): download the full zip (about 34 MB, includes everything) or the -lite zip (about 2 MB, needs Node.js 22.13 or newer already installed), extract it, double-click start.bat. Not code-signed, so Windows may warn; see README.txt inside the zip. SHA-256 of the zip is in SHA256SUMS.txt."
