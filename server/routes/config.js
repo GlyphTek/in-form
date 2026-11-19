@@ -7,7 +7,19 @@
 
 import { detectSource } from "../ingest/detect.js";
 import { TOPICS } from "../topics.js";
+import { REGIONS, REGION_IDS, SCOPES } from "../regions.js";
+
 import { MAX_SOURCES, normalizeList } from "../store/config.js";
+
+export const regionSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["scope"],
+  properties: {
+    scope: { type: "string", enum: SCOPES },
+    area: { anyOf: [{ type: "string", enum: REGION_IDS }, { type: "null" }] },
+  },
+};
 
 const putSchema = {
   type: "object",
@@ -19,6 +31,7 @@ const putSchema = {
       maxItems: MAX_SOURCES,
       items: { type: "string", minLength: 1, maxLength: 2048 },
     },
+    region: { anyOf: [regionSchema, { type: "null" }] },
     // Deprecated: platforms were removed. Older pages may still send them, so
     // they are accepted and ignored rather than rejected.
     platforms: { type: "array", maxItems: 20, items: { type: "string", maxLength: 80 } },
@@ -34,7 +47,10 @@ export default async function configRoutes(app, { store, signals }) {
   // The topic chips offered on the setup screen.
   app.get("/api/topics", { preHandler: app.requireAuth }, async (request, reply) => {
     reply.header("cache-control", "no-store");
-    return { topics: TOPICS.map(({ id, label }) => ({ id, label, source: `topic:${id}` })) };
+    return {
+      topics: TOPICS.map(({ id, label, local }) => ({ id, label, local: Boolean(local), source: `topic:${id}` })),
+      regions: REGIONS.map(({ id, label, editions }) => ({ id, label, hasEditions: editions.length > 0 })),
+    };
   });
 
   app.put("/api/config", { schema: { body: putSchema }, preHandler: app.requireAuth }, async (request, reply) => {
@@ -65,7 +81,7 @@ export default async function configRoutes(app, { store, signals }) {
     return app.db.transaction(() => {
       const kept = new Set(inputs.map((i) => i.toLowerCase()));
       const removed = store.get(request.user.id).sources.filter((i) => !kept.has(i.toLowerCase()));
-      const saved = store.replace(request.user.id, { sources });
+      const saved = store.replace(request.user.id, { sources, region: request.body.region });
       if (removed.length) signals.forgetSources(request.user.id, removed);
       return saved;
     })();

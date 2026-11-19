@@ -15,6 +15,8 @@
 
 import { assignChannels, CHANNELS } from "./rank.js";
 import { normalizeUrl, titleKey } from "../ingest/normalize.js";
+import { TOPIC_PREFIX, getTopic } from "../topics.js";
+import { editionsFor, getRegion } from "../regions.js";
 
 const MAX_ITEMS_PER_SOURCE = 15;
 
@@ -49,6 +51,66 @@ function withDeadline(promise, ms) {
   return Promise.race([promise.then((value) => ({ value })), deadline]).finally(() => clearTimeout(timer));
 }
 
+
+// Which fetches one configured source turns into, given the region choice.
+// Only topics with regional variants (News, Sport, Education) are affected;
+// everything else is fetched once, exactly as typed.
+//   global  the plain topic
+//   local   one fetch per regional edition of the chosen continent
+//   both    the plain topic plus the regional editions
+// A continent with no English edition gives no local fetches, and `note` says so.
+function planSource(input, region) {
+  const plan = { input, fetches: [input], note: null, noLocal: false };
+  if (!region || region.scope === "global" || !region.area) return plan;
+  const lower = input.toLowerCase();
+  if (!lower.startsWith(TOPIC_PREFIX)) return plan;
+  const topic = getTopic(lower.slice(TOPIC_PREFIX.length));
+  if (!topic?.local) return plan;
+
+  const editions = editionsFor(region.area);
+  const regionLabel = getRegion(region.area)?.label ?? region.area;
+  if (editions.length === 0) {
+    plan.noLocal = true;
+    plan.note = `No English-language local sources for ${regionLabel} yet`;
+    plan.fetches = region.scope === "both" ? [input] : [];
+    return plan;
+  }
+  const local = editions.map((e) => `${input}@${e.code.toLowerCase()}`);
+  plan.fetches = region.scope === "local" ? local : [input, ...local];
+  return plan;
+}
+
+const byNewest = (a, b) => (Date.parse(b.published) || 0) - (Date.parse(a.published) || 0);
+
+// Folds the results of a source's fetches back into one result.
+function mergeResults(plan, parts) {
+  if (plan.fetches.length === 0) {
+    return {
+      input: plan.input,
+      kind: "topic",
+      status: "error",
+      items: [],
+      error: { kind: "no_regional_sources", message: `${plan.note}. Choose Global or Both to see this topic.` },
+    };
+  }
+  if (parts.length === 1 && !plan.note) return { ...parts[0], input: plan.input };
+
+  const delivered = parts.filter((p) => p.status !== "error");
+  const pool = delivered.length ? delivered : parts;
+  const status = delivered.length === 0 ? "error" : delivered.some((p) => p.status === "ok") ? "ok" : "stale";
+  const times = delivered.map((p) => p.fetchedAt).filter(Boolean).sort();
+  return {
+    input: plan.input,
+    kind: pool.find((p) => p.kind)?.kind ?? null,
+    label: pool.find((p) => p.label)?.label ?? null,
+    status,
+    items: delivered.flatMap((p) => p.items).sort(byNewest),
+    fetchedAt: times.length ? times[times.length - 1] : null,
+    error: delivered.length ? null : parts.find((p) => p.error)?.error ?? null,
+    note: plan.note,
+  };
+}
+
 export async function generateSignals({
   ingestor,
   sources = [],
@@ -60,6 +122,8 @@ export async function generateSignals({
   exclude = () => false,
   relevantMaxAgeHours,
   affinity,
+  // { scope: "local" | "global" | "both", area: continent id }, or null for global.
+  region = null,
   log,
 }) {
   const startedAt = now();
@@ -74,7 +138,8 @@ export async function generateSignals({
   }
 
   const deadlineAt = startedAt + deadlineMs;
-  const fetched = await mapWithLimit(sources, concurrency, async (input) => {
+  const plans = sources.map((input) => planSource(input, region));
+  const fetchedParts = await mapWithLimit(plans.flatMap((p) => p.fetches), concurrency, async (input) => {
     const remaining = Math.max(0, deadlineAt - now());
     const outcome = await withDeadline(ingestor.getItems(input), remaining);
     if (outcome.timedOut) {
@@ -87,6 +152,12 @@ export async function generateSignals({
       };
     }
     return outcome.value;
+  });
+  let cursor = 0;
+  const fetched = plans.map((plan) => {
+    const parts = fetchedParts.slice(cursor, cursor + plan.fetches.length);
+    cursor += plan.fetches.length;
+    return mergeResults(plan, parts);
   });
 
   const candidates = [];
@@ -120,6 +191,7 @@ export async function generateSignals({
       input: result.input,
       kind: result.kind,
       label: result.label ?? null,
+      note: result.note ?? null,
       status: result.status,
       itemCount: result.items.length,
       fetchedAt: result.fetchedAt ?? null,

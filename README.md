@@ -185,3 +185,24 @@ dismissals: one per source, one per word in titles.
 | `RELEVANT_MAX_AGE_HOURS` | `48` | Relevant only takes items newer than this (1 to 720); undated items are allowed |
 | `ALLOWED_ORIGINS` | (none) | Comma separated; only if a proxy rewrites `Host` |
 | `GENERATE_RATE_LIMIT_PER_MINUTE` | `12` | Per client, `/api/signals/generate` |
+
+## Region (Local / Global / Both)
+
+The setup screen asks where News, Sport and Education should come from: Local,
+Global or Both, with a continent (Europe, Africa, Asia, Oceania, North America,
+South America). The suggested continent is guessed from the browser's time zone
+and is only saved when the user presses START. The choice is stored on the account
+(`users.region_scope`, `users.region_area`) and can be sent with a generate
+request as `region: { scope, area }`.
+
+- Only topics marked `local: true` in `server/topics.js` are affected. Other topics
+  and anything typed under "Add your own" are fetched once, as before.
+- Local means the English-language Google News editions listed per continent in
+  `server/regions.js` (for example Oceania: NZ and AU). A signal run turns
+  `topic:news` into `topic:news@nz`, `topic:news@au` and so on, merges them back into
+  one source, and keeps the source name so learning is not split by edition.
+- South America has no English edition yet. The app says so rather than
+  substituting anything: Local shows an explicit message for those topics, Both
+  falls back to the global feed with a note.
+- The editions are not yet checked against live Google News. Try one with
+  `npm run ingest -- "topic:news@nz"`.

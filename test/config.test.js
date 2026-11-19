@@ -31,7 +31,7 @@ test("a new account starts empty", async () => {
   const { app, headers } = await makeApp();
   const res = await get(app, headers);
   assert.equal(res.statusCode, 200);
-  assert.deepEqual(res.json(), { sources: [], updatedAt: null });
+  assert.deepEqual(res.json(), { sources: [], region: null, updatedAt: null });
   assert.equal(res.headers["cache-control"], "no-store");
   await app.close();
 });
@@ -171,7 +171,7 @@ test("rows are scoped to their owner (a second account cannot read the first's c
   const other = db.prepare("SELECT id FROM users WHERE email = 'other@example.com'").get().id;
   const { createConfigStore } = await import("../server/store/config.js");
   const store = createConfigStore(db);
-  assert.deepEqual(store.get(other), { sources: [], updatedAt: null });
+  assert.deepEqual(store.get(other), { sources: [], region: null, updatedAt: null });
   await app.close();
 });
 

@@ -338,10 +338,98 @@ async function loadTopics() {
         if (!res.ok) return;
         const data = await res.json();
         if (Array.isArray(data.topics) && data.topics.length) topics = data.topics;
+        if (Array.isArray(data.regions) && data.regions.length) regions = data.regions;
     } catch {
         /* keep the built-in list */
     }
     renderSources();
+    renderRegion();
+}
+
+const SCOPES = [["local", "Local"], ["global", "Global"], ["both", "Both"]];
+const FALLBACK_REGIONS = [
+    ["europe", "Europe", true], ["africa", "Africa", true], ["asia", "Asia", true],
+    ["oceania", "Oceania", true], ["north-america", "North America", true], ["south-america", "South America", false]
+].map(([id, label, hasEditions]) => ({ id, label, hasEditions }));
+
+let regions = FALLBACK_REGIONS;
+let userRegion = { scope: "both", area: null };
+
+// A starting guess from the browser's time zone. It is only a suggestion: the
+// person can change it, and nothing is saved until they press START.
+function guessArea() {
+    let tz = "";
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { /* unknown */ }
+    const [zone, city = ""] = tz.split("/");
+    if (zone === "Europe") return "europe";
+    if (zone === "Africa") return "africa";
+    if (zone === "Asia") return "asia";
+    if (zone === "Australia" || zone === "Pacific") return "oceania";
+    if (zone === "America") {
+        const south = /^(Argentina|Sao_Paulo|Bogota|Lima|Santiago|Caracas|La_Paz|Montevideo|Asuncion|Guayaquil|Cayenne|Paramaribo|Guyana|Manaus|Bahia|Fortaleza|Recife|Belem|Cuiaba|Campo_Grande|Porto_Velho|Boa_Vista)/;
+        return south.test(city) ? "south-america" : "north-america";
+    }
+    return null;
+}
+
+function normalizeRegion(value) {
+    const ok = value && ["local", "global", "both"].includes(value.scope);
+    if (!ok) return { scope: "both", area: guessArea() };
+    return { scope: value.scope, area: value.area ?? null };
+}
+
+function renderRegion() {
+    const scopeBox = document.getElementById("region-scope");
+    const areaSel = document.getElementById("region-area");
+    const note = document.getElementById("region-note");
+    if (!scopeBox || !areaSel) return;
+
+    scopeBox.innerHTML = "";
+    SCOPES.forEach(([id, label]) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "topic-chip";
+        btn.dataset.scope = id;
+        btn.textContent = label;
+        const on = userRegion.scope === id;
+        btn.classList.toggle("selected", on);
+        btn.setAttribute("aria-pressed", String(on));
+        btn.addEventListener("click", () => {
+            userRegion = { ...userRegion, scope: id };
+            setSetupDirty(true);
+            renderRegion();
+        });
+        scopeBox.appendChild(btn);
+    });
+
+    areaSel.innerHTML = "";
+    const blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = "Choose a region";
+    areaSel.appendChild(blank);
+    regions.forEach(r => {
+        const opt = document.createElement("option");
+        opt.value = r.id;
+        opt.textContent = r.label;
+        areaSel.appendChild(opt);
+    });
+    areaSel.value = userRegion.area || "";
+    areaSel.hidden = userRegion.scope === "global";
+    areaSel.onchange = () => {
+        userRegion = { ...userRegion, area: areaSel.value || null };
+        setSetupDirty(true);
+        renderRegion();
+    };
+
+    const area = regions.find(r => r.id === userRegion.area);
+    let text = "Applies to News, Sport and Education. Other topics are the same everywhere.";
+    if (userRegion.scope !== "global" && !userRegion.area) {
+        text = "Choose a region to see local sources. Until then you get the global ones.";
+    } else if (userRegion.scope !== "global" && area && !area.hasEditions) {
+        text = `No English-language local sources for ${area.label} yet. ` +
+            (userRegion.scope === "local" ? "Local topics will show nothing until you pick Both or Global." : "You will get the global ones.");
+    }
+    if (note) note.textContent = text;
 }
 
 function renderSources() {
@@ -579,7 +667,7 @@ async function preloadSetup() {
                     console.warn("Could not carry this device's setup to your account", err);
                 }
             } else {
-                config = { sources: remote.sources };
+                config = { sources: remote.sources, region: remote.region };
             }
             markAccountSynced();
         } catch (err) {
@@ -592,7 +680,9 @@ async function preloadSetup() {
     }
 
     userSources = [...config.sources];
+    userRegion = normalizeRegion(config.region);
     renderSources();
+    renderRegion();
     loadTopics();
     setSetupDirty(false);
     if (setupError) setupError.textContent = "";
@@ -663,7 +753,8 @@ if (startBtn) {
 
         if (setupError) setupError.textContent = "";
         const userConfig = {
-            sources: [...userSources]
+            sources: [...userSources],
+            region: { ...userRegion }
         };
 
         let syncNote = "";
@@ -814,12 +905,15 @@ function loadConfig() {
     try {
         const saved = JSON.parse(localStorage.getItem("inform_config"));
         if (saved && typeof saved === "object") {
-            return { sources: Array.isArray(saved.sources) ? saved.sources : [] };
+            return {
+                sources: Array.isArray(saved.sources) ? saved.sources : [],
+                region: saved.region && typeof saved.region === "object" ? saved.region : null
+            };
         }
     } catch (err) {
         console.warn("Could not read saved configuration", err);
     }
-    return { sources: [] };
+    return { sources: [], region: null };
 }
 
 async function requestSignals(config) {
@@ -830,7 +924,7 @@ async function requestSignals(config) {
         const response = await fetch("/api/signals/generate", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ sources: config.sources }),
+            body: JSON.stringify(config.region ? { sources: config.sources, region: config.region } : { sources: config.sources }),
             signal: controller.signal
         });
 
@@ -940,7 +1034,7 @@ function renderActiveSources(config, result) {
             else if (s.status === "stale") note = "⚠ showing older data";
             else if (s.status === "error") note = `✗ ${s.error ? s.error.message : "unavailable"}`;
             else note = "not checked";
-            li.textContent = `${s.label || topicLabel(s.input)}: ${note}`;
+            li.textContent = `${s.label || topicLabel(s.input)}: ${note}${s.note ? ` (${s.note})` : ""}`;
             return li;
         }),
         "None added"

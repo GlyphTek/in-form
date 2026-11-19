@@ -66,3 +66,13 @@ Step 7 (observability, per-user feed health, degraded messaging), then Step 8
 (dogfood and cut over from GitHub Pages). Open question: hosting. Cloudflare
 free tier would need a port (Workers + D1, 10 ms CPU limit is the risk); an
 Oracle Always Free VM could run the app unchanged.
+
+## Region choice (Step C)
+
+- Local / Global / Both plus a continent, stored on the account (migration 006).
+  Applies only to topics with `local: true` (News, Sport, Education).
+- Local = English Google News editions per continent (`server/regions.js`).
+  UNVERIFIED against live Google News: check with
+  `npm run ingest -- "topic:news@nz"` (and gb, in, za, us).
+- Not built: country-level refinement (the fallback chain is continent, then
+  global); non-English editions; per-edition health shown separately.

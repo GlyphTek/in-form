@@ -66,9 +66,10 @@ export function createIngestor({
     return promise;
   }
 
-  function newsUrl(query) {
+  function newsUrl(query, edition = null) {
     const q = news.when ? `${query} when:${news.when}` : query;
-    const params = new URLSearchParams({ q, hl: news.hl, gl: news.gl, ceid: news.ceid });
+    const { hl, gl, ceid } = edition ?? news;
+    const params = new URLSearchParams({ q, hl, gl, ceid });
     return `https://news.google.com/rss/search?${params}`;
   }
 
@@ -204,7 +205,7 @@ export function createIngestor({
   async function resolve(input) {
     const detected = detectSource(input); // throws IngestError("invalid_input")
     if (detected.kind === "keyword" || detected.kind === "topic") {
-      return { kind: detected.kind, input: detected.input, label: detected.label, feedUrl: newsUrl(detected.query) };
+      return { kind: detected.kind, input: detected.input, label: detected.label, feedUrl: newsUrl(detected.query, detected.edition ?? null) };
     }
 
     return shared(`resolve:${detected.url}`, async () => {

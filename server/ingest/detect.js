@@ -14,6 +14,7 @@
 
 import { IngestError } from "./errors.js";
 import { TOPIC_PREFIX, getTopic } from "../topics.js";
+import { getEdition } from "../regions.js";
 
 const COMMON_TLDS = new Set(
   (
@@ -61,10 +62,17 @@ export function detectSource(raw) {
   if (!input) throw new IngestError("invalid_input", "Source is empty");
 
   if (input.toLowerCase().startsWith(TOPIC_PREFIX)) {
-    const id = input.slice(TOPIC_PREFIX.length).toLowerCase();
+    // "topic:news" is global; "topic:news@nz" is the same topic from one
+    // regional edition (added by the signal run, never typed by the user).
+    const [id, code, ...extra] = input.slice(TOPIC_PREFIX.length).toLowerCase().split("@");
     const topic = getTopic(id);
     if (!topic) throw new IngestError("invalid_input", `Unknown topic "${id.slice(0, 40)}"`);
-    return { kind: "topic", input, query: topic.query, label: topic.label, reason: "topic" };
+    let edition = null;
+    if (code !== undefined) {
+      edition = getEdition(code);
+      if (!edition || extra.length) throw new IngestError("invalid_input", `Unknown region "${String(code).slice(0, 20)}"`);
+    }
+    return { kind: "topic", input, query: (edition && topic.localQuery) || topic.query, label: topic.label, edition, reason: "topic" };
   }
 
   const quoted = /^(["'“‘])(.+)(["'”’])$/.exec(input);
