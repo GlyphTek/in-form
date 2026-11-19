@@ -97,3 +97,12 @@ Oracle Always Free VM could run the app unchanged.
 - Package size: full zip about 34 MB (node.exe is about 33 MB of that); `--lite` zip about
   2 MB uses the Node already installed (start.bat checks it is 22.13+). node_modules is pruned
   (docs, .d.ts, maps, tests; licences kept). The pruned tree passes the test suite.
+
+## Step E (public README, video, release checklist)
+
+- README.md is now the public overview; the old developer README moved to docs/DEVELOPMENT.md.
+- docs/VIDEO_SCRIPT.md (shot list, real app only) and docs/FIRST_RELEASE.md (checklist) added.
+- The Michroma font is bundled (public/fonts, SIL OFL licence alongside), replacing the
+  Google Fonts import, so the page requests nothing from other sites. A test guards this.
+- OPEN: no LICENSE file; the licence choice is the owner's. The release workflow has never run.
+- OPEN: README claims "answers only your own computer" and "no analytics": true of the code now.

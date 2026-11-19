@@ -55,3 +55,22 @@ test("migrations are idempotent", async () => {
   assert.equal(second.length, 0);
   db.close();
 });
+
+test("the app loads nothing from other websites: fonts are served locally and no page references an outside URL", async () => {
+  const fs = await import("node:fs");
+  const app = await makeApp();
+  const font = await app.inject({ url: "/fonts/michroma-latin-400-normal.woff2" });
+  assert.equal(font.statusCode, 200);
+  assert.match(font.headers["content-type"], /font\/woff2|application\/(font-woff2|octet-stream)/);
+  assert.equal((await app.inject({ url: "/fonts/Michroma-OFL.txt" })).statusCode, 200, "the font licence ships with the font");
+  await app.close();
+
+  for (const file of ["public/index.html", "public/style.css", "public/app.js"]) {
+    const text = fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
+    // Links the user clicks (such as the item links) are built at run time; here we
+    // only look for resources the page would fetch by itself.
+    assert.doesNotMatch(text, /@import\s+url\(\s*['"]?https?:/i, `${file} imports from another site`);
+    assert.doesNotMatch(text, /<(?:script|link|img|iframe)[^>]+(?:src|href)=["']https?:/i, `${file} loads from another site`);
+    assert.doesNotMatch(text, /url\(\s*['"]?https?:/i, `${file} loads a resource from another site`);
+  }
+});
