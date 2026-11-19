@@ -7,7 +7,8 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "migrate": "node server/migrate.js",
-    "ingest": "node server/ingest-cli.js"
+    "ingest": "node server/ingest-cli.js",
+    "package:win": "node scripts/package-win.mjs"
   },
   "private": true,
   "type": "module",

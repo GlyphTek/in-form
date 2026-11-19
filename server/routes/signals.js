@@ -84,6 +84,10 @@ export default async function signalRoutes(app, { ingestor, store, signals, gene
           hidden: result.hidden,
           items: Object.values(result.channels).reduce((n, items) => n + items.length, 0),
           perChannel: Object.fromEntries(Object.entries(result.channels).map(([k, v]) => [k, v.length])),
+          // e.g. "topic:news@nz ok 14": one entry per regional fetch.
+          editions: result.sources.flatMap((src) =>
+            (src.editions ?? []).map((e) => `${e.input} ${e.status === "error" ? `error (${e.error?.kind ?? "unknown"})` : `${e.status} ${e.itemCount}`}`),
+          ),
         },
         "signals generated",
       );

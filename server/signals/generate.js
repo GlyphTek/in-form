@@ -108,6 +108,14 @@ function mergeResults(plan, parts) {
     fetchedAt: times.length ? times[times.length - 1] : null,
     error: delivered.length ? null : parts.find((p) => p.error)?.error ?? null,
     note: plan.note,
+    // What each fetch did, so a failing edition shows up even when another one
+    // delivered. Only present when a source was fetched more than one way.
+    editions: parts.map((p, i) => ({
+      input: plan.fetches[i],
+      status: p.status,
+      itemCount: p.items.length,
+      error: p.error ?? null,
+    })),
   };
 }
 
@@ -192,6 +200,7 @@ export async function generateSignals({
       kind: result.kind,
       label: result.label ?? null,
       note: result.note ?? null,
+      ...(result.editions ? { editions: result.editions } : {}),
       status: result.status,
       itemCount: result.items.length,
       fetchedAt: result.fetchedAt ?? null,

@@ -69,7 +69,7 @@ test("sources that miss the deadline are reported as timeouts without blocking t
     slow: () => new Promise((resolve) => setTimeout(() => resolve(ok("slow", [mk("Late")])), 400)),
   });
   const started = Date.now();
-  const r = await generateSignals({ ingestor, sources: ["fast", "slow"], deadlineMs: 50, now: Date.now });
+  const r = await generateSignals({ ingestor, sources: ["fast", "slow"], deadlineMs: 50, now: () => NOW });
   assert.ok(Date.now() - started < 300);
   assert.equal(r.status, "partial");
   const slow = r.sources.find((s) => s.input === "slow");

@@ -76,3 +76,21 @@ Oracle Always Free VM could run the app unchanged.
   `npm run ingest -- "topic:news@nz"` (and gb, in, za, us).
 - Not built: country-level refinement (the fallback chain is continent, then
   global); non-English editions; per-edition health shown separately.
+
+## Windows package and setup backup (Step D)
+
+- `npm run package:win` -> `dist/in-form-<v>-win-x64.zip`: node.exe + server + public +
+  production node_modules + start.bat + README.txt. Portable folder, NOT a single exe
+  (a single exe via Node SEA is possible later; it could not be tested without Windows).
+- start.bat: INFORM_AUTH=off, HOST=127.0.0.1, data in %APPDATA%\IN-FORM\inform.db,
+  opens the browser via a delayed `start`. UNTESTED on real Windows: the packaged tree
+  was run under Linux Node with the same environment and worked; start.bat itself
+  (especially the delayed browser launch) needs a first run on Windows.
+- node.exe comes from npm `node-win-x64@22.23.4` (hash pinned). Its sha256 should equal
+  the win-x64/node.exe line at nodejs.org/dist/v22.23.4/SHASUMS256.txt; not checkable from
+  the build sandbox, so CI does it (`release.yml`, never run yet).
+- Setup export/import is client-side (`in-form-setup.json`: app, version, exportedAt,
+  sources, region). Loading fills the screen; START saves. Learning history is not in the file.
+- Source reports now carry `editions` (per regional fetch) and the generate log line lists
+  them, e.g. `topic:news@nz ok 14`.
+- Unsigned binaries: SmartScreen warnings are expected; signing needs a paid certificate.

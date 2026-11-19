@@ -163,3 +163,32 @@ test("/api/topics says which topics have local variants and which regions have e
   assert.equal(body.regions.find((r) => r.id === "south-america").hasEditions, false);
   await app.close();
 });
+
+test("each source reports what every regional fetch did, so one failing edition is visible", async () => {
+  const ingestor = {
+    async getItems(input) {
+      if (input.endsWith("@au")) return { input, kind: null, status: "error", items: [], fetchedAt: null, error: { kind: "network", message: "down" } };
+      return { input, kind: "topic", label: "News", status: "ok", fetchedAt: null, error: null, items: [{ title: `t ${input}`, link: `https://x.example/${input}`, published: new Date().toISOString(), summary: "" }] };
+    },
+  };
+  const r = await generateSignals({ ingestor, sources: ["topic:news", "quantum"], region: { scope: "both", area: "oceania" } });
+  const news = r.sources.find((s) => s.input === "topic:news");
+  assert.deepEqual(news.editions.map((e) => [e.input, e.status]), [["topic:news", "ok"], ["topic:news@nz", "ok"], ["topic:news@au", "error"]]);
+  assert.equal(news.editions[2].error.kind, "network");
+  assert.equal("editions" in r.sources.find((s) => s.input === "quantum"), false, "single fetches carry no edition detail");
+});
+
+test("the signals log line names every regional fetch", async () => {
+  const lines = [];
+  const ingestor = recorder();
+  const db = openDatabase(":memory:");
+  const config = testConfig({ auth: { mode: "password", password: PASSWORD, loginRateLimitPerMinute: 100 } });
+  const app = await buildApp(config, { db, ingestor });
+  app.log.info = ((orig) => (obj, msg) => { if (msg === "signals generated") lines.push(obj); return orig?.call(app.log, obj, msg); })(app.log.info);
+  const login = await app.inject({ method: "POST", url: "/api/auth/login", payload: { password: PASSWORD } });
+  const headers = { cookie: `inform_session=${login.cookies.find((c) => c.name === "inform_session").value}` };
+  await app.inject({ method: "POST", url: "/api/signals/generate", headers, payload: { sources: ["topic:news"], region: { scope: "local", area: "oceania" } } });
+  await app.close();
+  assert.ok(lines.length, "log line was written");
+  assert.deepEqual(lines[0].editions, ["topic:news@nz ok 1", "topic:news@au ok 1"]);
+});

@@ -689,6 +689,106 @@ async function preloadSetup() {
     return "setup";
 }
 
+
+/* ==========================
+   EXPORT / IMPORT OF THE SETUP
+
+   A small JSON file: { app, version, exportedAt, sources, region }. Loading a
+   file only fills in the setup screen; nothing is saved until START.
+========================== */
+
+const SETUP_FILE_APP = "in-form";
+const SETUP_FILE_VERSION = 1;
+const SETUP_MAX_SOURCES = 20;
+const SETUP_MAX_FILE_BYTES = 100 * 1024;
+
+function buildSetupFile() {
+    return {
+        app: SETUP_FILE_APP,
+        version: SETUP_FILE_VERSION,
+        exportedAt: new Date().toISOString(),
+        sources: [...userSources],
+        region: { ...userRegion }
+    };
+}
+
+// Returns { sources, region } or throws an Error whose message says what is wrong.
+function parseSetupFile(text) {
+    let data;
+    try {
+        data = JSON.parse(text);
+    } catch {
+        throw new Error("That file is not a saved IN-FORM setup (it is not valid JSON).");
+    }
+    if (!data || typeof data !== "object" || data.app !== SETUP_FILE_APP) {
+        throw new Error("That file is not a saved IN-FORM setup.");
+    }
+    if (data.version !== SETUP_FILE_VERSION) {
+        throw new Error("That setup file was made by a different version of IN-FORM and can't be loaded.");
+    }
+    if (!Array.isArray(data.sources) || data.sources.some(s => typeof s !== "string")) {
+        throw new Error("That setup file has no valid list of topics and sites.");
+    }
+    const seen = new Set();
+    const sources = [];
+    for (const raw of data.sources) {
+        const value = raw.trim().replace(/\s+/g, " ");
+        if (!value || value.length > 2048 || seen.has(value.toLowerCase())) continue;
+        seen.add(value.toLowerCase());
+        sources.push(value);
+    }
+    if (sources.length > SETUP_MAX_SOURCES) {
+        throw new Error(`That setup has ${sources.length} entries; the limit is ${SETUP_MAX_SOURCES}.`);
+    }
+    const areas = regions.map(r => r.id);
+    const r = data.region;
+    const region = r && ["local", "global", "both"].includes(r.scope) && (r.area == null || areas.includes(r.area))
+        ? { scope: r.scope, area: r.area ?? null }
+        : null;
+    return { sources, region };
+}
+
+const exportBtn = document.getElementById("export-btn");
+const importBtn = document.getElementById("import-btn");
+const importFile = document.getElementById("import-file");
+
+if (exportBtn) {
+    exportBtn.addEventListener("click", () => {
+        const blob = new Blob([JSON.stringify(buildSetupFile(), null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "in-form-setup.json";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        if (setupError) setupError.textContent = "";
+    });
+}
+
+if (importBtn && importFile) {
+    importBtn.addEventListener("click", () => importFile.click());
+    importFile.addEventListener("change", async () => {
+        const file = importFile.files && importFile.files[0];
+        importFile.value = "";
+        if (!file) return;
+        if (setupError) setupError.textContent = "";
+        try {
+            if (file.size > SETUP_MAX_FILE_BYTES) throw new Error("That file is too large to be a saved setup.");
+            const loaded = parseSetupFile(await file.text());
+            userSources = loaded.sources;
+            if (loaded.region) userRegion = loaded.region;
+            setSetupDirty(true);
+            renderSources();
+            renderRegion();
+            if (setupError) setupError.textContent = "";
+        } catch (err) {
+            if (setupError) setupError.textContent = err.message;
+        }
+    });
+}
+
 async function prepareAfterLanding() {
     await refreshAuth();
     if (accountMode() === "login") return "login";

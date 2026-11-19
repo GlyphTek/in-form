@@ -206,3 +206,39 @@ request as `region: { scope, area }`.
   falls back to the global feed with a note.
 - The editions are not yet checked against live Google News. Try one with
   `npm run ingest -- "topic:news@nz"`.
+
+## Download and run (Windows, portable)
+
+1. Download `in-form-<version>-win-x64.zip` from the Releases page.
+2. Right-click the zip, choose Properties, tick Unblock (if shown), then Extract All.
+3. Open the folder and double-click `start.bat`. Your browser opens on IN-FORM.
+   Keep the black window open while you use it; close it to stop.
+
+The app is not code-signed, so Windows SmartScreen may say "Windows protected your
+PC". Choose More info, then Run anyway. Only do this for a zip from the official
+release page; `SHA256SUMS.txt` on the release lets you check the download.
+
+It runs for one person on that computer only (`127.0.0.1`, no password). Your
+setup and history are stored in `%APPDATA%\IN-FORM`, so they survive replacing the
+folder with a newer version. Use "Back up or move your setup" on the setup screen to
+save your topics, sites and region to a file, or load one.
+
+Mac and Linux builds are not made yet; they can run from source (`npm install`,
+`npm start`) on Node 22.13 or newer.
+
+### Building the package
+
+    npm run package:win
+
+Builds `dist/in-form-<version>-win-x64.zip` on any OS (needs `zip` on Linux/Mac;
+Windows uses its built-in `tar`). `node.exe` is fetched from the `node-win-x64` npm
+package at the pinned version in `scripts/package-win.mjs`, whose tarball hash is
+checked, and the node.exe SHA-256 is printed for comparison with
+`https://nodejs.org/dist/v<version>/SHASUMS256.txt` (the `win-x64/node.exe` line).
+Pass `--node-exe <path>` to use a node.exe you downloaded yourself.
+
+### Releasing
+
+Pushing a tag such as `v0.2.0` runs `.github/workflows/release.yml`, which tests,
+builds the zip, checks `node.exe` against nodejs.org, and attaches the zip and
+`SHA256SUMS.txt` to a GitHub Release. This workflow has not been run yet.
