@@ -1,4 +1,20 @@
-@import url('https://fonts.googleapis.com/css2?family=Michroma&display=swap');
+/* Michroma (SIL Open Font License, see fonts/Michroma-OFL.txt), served from this app so no browser contacts Google. */
+@font-face {
+    font-family: 'Michroma';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 400;
+    src: url(fonts/michroma-latin-ext-400-normal.woff2) format('woff2');
+    unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+    font-family: 'Michroma';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 400;
+    src: url(fonts/michroma-latin-400-normal.woff2) format('woff2');
+    unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
 
 :root{
     --bg:#050505;
@@ -140,7 +156,7 @@ body::before{
 }
 
 /* Make sure your container and screens sit safely above the canvas */
-.container, #landing-screen, #setup-screen {
+.container, #landing-screen, #setup-screen, #login-screen {
     position: relative;
     z-index: 3;
 }
@@ -374,6 +390,12 @@ details[open].card{
     font-size:.8rem;
 }
 
+.signal-item + .signal-item{
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px solid rgba(255,255,255,.05);
+}
+
 /* CONTEXT */
 
 .context-card{
@@ -478,7 +500,8 @@ footer{
    SETUP SCREEN
 =========================== */
 
-#setup-screen{
+#setup-screen,
+#login-screen{
 
     min-height:100vh;
 
@@ -561,7 +584,8 @@ footer{
         0 0 12px rgba(0,255,136,.1);
 }
 
-#start-btn{
+#start-btn,
+#login-btn{
 
     margin-top:12px;
 
@@ -587,7 +611,8 @@ footer{
     transition:.3s ease;
 }
 
-#start-btn:hover{
+#start-btn:hover,
+#login-btn:hover{
 
     box-shadow:
         0 0 20px rgba(0,255,136,.12);
@@ -597,43 +622,6 @@ footer{
     display:none;
 }
 
-.platforms{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:6px;
-    margin-top:4px;
-}
-
-.platforms label{
-
-    display:flex;
-    align-items:center;
-    gap:8px;
-
-    padding:6px 8px;
-
-    background:rgba(255,255,255,.03);
-
-    border:1px solid rgba(0,255,136,.08);
-
-    border-radius:6px;
-
-    color:var(--text);
-
-    cursor:pointer;
-
-    font-size: 0.70rem;
-}
-
-.platforms input[type="checkbox"]{
-
-    accent-color:#00ff88;
-
-    width:14px;
-    height:18px;
-
-    flex-shrink:0;
-}
 
 button[type="button"]{
 
@@ -757,6 +745,9 @@ button[type="button"]:hover{
 .sources-section li {
     padding: 2px 0;
     opacity: 0.85;
+    /* The TIFA card is an <a>, so list text would otherwise inherit the default link blue. */
+    color: var(--text);
+    overflow-wrap: anywhere;
 }
 
 /* ===========================
@@ -862,12 +853,14 @@ button[type="button"]:hover{
 
 /* hide until OPEN clicked */
 
-#setup-screen{
+#setup-screen,
+#login-screen{
     display:none;
 }
 
 #landing-screen,
-#setup-screen{
+#setup-screen,
+#login-screen{
     transition:opacity .5s ease;
 }
 
@@ -1037,4 +1030,139 @@ button[type="button"]:hover{
 .status-icon.visible {
     opacity: 1;
     transform: scale(1);
+}
+
+/* ===========================
+   FORM MESSAGES
+=========================== */
+
+.setup-container .form-error {
+    min-height: 1.2em;
+    text-align: center;
+    color: #ff7a7a;
+    font-size: 0.7rem;
+    line-height: 1.5;
+}
+
+#login-btn:disabled,
+#start-btn:disabled {
+    opacity: 0.5;
+    cursor: wait;
+}
+
+
+/* Signal actions */
+.signal-actions{
+    display:flex;
+    gap:8px;
+    margin-top:8px;
+}
+
+.signal-btn{
+    font-size:.65rem;
+    padding:4px 10px;
+}
+
+.signal-btn[aria-pressed="true"]{
+    color:var(--accent);
+    border-color:rgba(0,255,136,.35);
+    background:rgba(0,255,136,.08);
+}
+
+.signal-btn:disabled{
+    opacity:.5;
+    cursor:default;
+}
+
+.signal-dismissed p{
+    color:#8a8a8a;
+}
+
+.signal-error{
+    margin-top:6px;
+    color:#ff8888;
+    font-size:.7rem;
+}
+
+.content p.signal-why{
+    margin-top:2px;
+    font-size:.65rem;
+    line-height:1.5;
+    color:#8a8a8a;
+}
+
+.setup-unsaved{
+    margin-top:10px;
+    font-size:.7rem;
+    color:#ffcc66;
+    text-align:center;
+}
+
+.setup-unsaved[hidden]{
+    display:none;
+}
+
+
+/* Topic chips */
+.topic-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.topic-chip {
+    background: rgba(0, 255, 136, 0.05);
+    border: 1px solid var(--border);
+    color: inherit;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.topic-chip.selected {
+    background: rgba(0, 255, 136, 0.2);
+    border-color: rgba(0, 255, 136, 0.6);
+}
+
+.custom-sources {
+    margin-bottom: 16px;
+    text-align: left;
+}
+
+.custom-sources summary {
+    cursor: pointer;
+    font-size: 0.8rem;
+    opacity: 0.8;
+    margin-bottom: 10px;
+}
+
+/* Region choice */
+.region-box {
+    margin-bottom: 16px;
+    text-align: left;
+}
+
+.region-box select {
+    margin-top: 4px;
+}
+
+.region-note {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin: 8px 0 0;
+}
+
+.region-box label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+/* Caught up: PRESS becomes DONE */
+.tifa-press-btn.is-done {
+    background: var(--secondary);
+    color: #000;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
 }

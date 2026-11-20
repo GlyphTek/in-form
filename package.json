@@ -1,0 +1,27 @@
+{
+  "name": "in-form",
+  "version": "0.1.0",
+  "description": "IN-FORM personal orientation tool",
+  "scripts": {
+    "test": "node --test",
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "migrate": "node server/migrate.js",
+    "ingest": "node server/ingest-cli.js",
+    "package:win": "node scripts/package-win.mjs"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/rate-limit": "^11.2.2",
+    "@fastify/static": "^10.1.11",
+    "fastify": "^5.12.8",
+    "rss-parser": "^3.13.0",
+    "undici": "^8.12.4"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Example Physics &amp; Tech</title>
+    <link>https://example.com/</link>
+    <description>Fixture feed</description>
+    <item>
+      <title>Quantum error correction hits a milestone</title>
+      <link>https://example.com/posts/quantum-milestone?utm_source=rss&amp;utm_medium=feed</link>
+      <guid isPermaLink="false">post-100</guid>
+      <pubDate>Mon, 16 Nov 2026 10:00:00 GMT</pubDate>
+      <description>&lt;p&gt;Researchers report a &lt;b&gt;new&lt;/b&gt; result &amp;amp; more.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Same story, different tracking</title>
+      <link>https://www.example.com/posts/quantum-milestone/?utm_campaign=x#comments</link>
+      <guid isPermaLink="false">post-100b</guid>
+      <pubDate>Mon, 16 Nov 2026 09:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>&lt;script&gt;alert(1)&lt;/script&gt;Storm warning for Auckland</title>
+      <link>https://example.com/posts/storm</link>
+      <guid>post-101</guid>
+      <pubDate>Sun, 15 Nov 2026 22:30:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Malicious link should be dropped</title>
+      <link>javascript:alert(document.cookie)</link>
+      <guid>post-102</guid>
+      <pubDate>Sat, 14 Nov 2026 12:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Item with a bogus far-future date</title>
+      <link>https://example.com/posts/future</link>
+      <guid>post-103</guid>
+      <pubDate>Fri, 01 Jan 2038 00:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Undated item</title>
+      <link>https://example.com/posts/undated</link>
+      <guid>post-104</guid>
+    </item>
+    <item>
+      <title></title>
+      <link>https://example.com/posts/no-title</link>
+      <guid>post-105</guid>
+    </item>
+  </channel>
+</rss>

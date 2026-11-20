@@ -35,6 +35,25 @@
 
 </div>
 
+<div id="login-screen">
+
+    <form id="login-form" class="setup-container" autocomplete="on">
+
+        <h1>SIGN IN</h1>
+
+        <label for="login-password">PASSWORD</label>
+        <input type="password" id="login-password" name="password" autocomplete="current-password" maxlength="1024" required>
+
+        <div id="login-error" class="form-error" role="alert"></div>
+
+        <button type="submit" id="login-btn">
+            SIGN IN
+        </button>
+
+    </form>
+
+</div>
+
 <div id="setup-screen">
 
     <div class="setup-container">
@@ -43,21 +62,37 @@
 
         <label>WHAT FORMS YOUR DAY?</label>
 
-        <div class="source-input-row">
-            <input type="text" id="source-input" placeholder="Enter site here...">
-            <button type="button" id="add-source-btn">+ Add Source</button>
+        <div id="topic-chips" class="topic-chips" role="group" aria-label="Topics"></div>
+
+        <div id="region-box" class="region-box">
+            <label>WHERE FROM?</label>
+            <div id="region-scope" class="topic-chips" role="group" aria-label="Where news comes from"></div>
+            <select id="region-area" aria-label="Region"></select>
+            <p id="region-note" class="region-note"></p>
         </div>
 
-        <ul id="sources-list" class="sources-list"></ul>
+        <details id="custom-sources" class="custom-sources">
+            <summary>Add your own topic, site or URL</summary>
+            <div class="source-input-row">
+                <input type="text" id="source-input" placeholder="Enter a topic, site or URL">
+                <button type="button" id="add-source-btn">+ Add Source</button>
+            </div>
+            <ul id="sources-list" class="sources-list"></ul>
+        </details>
 
-<label>WHERE DO YOU PARTICIPATE?</label>
 
-<div class="source-input-row">
-    <input type="text" id="platform-input" placeholder="Enter platform here...">
-    <button type="button" id="add-platform-btn">+ Add Platform</button>
-</div>
+        <details id="backup-box" class="custom-sources">
+            <summary>Back up or move your setup</summary>
+            <p class="region-note">Saves your topics, sites and region to a small file you can keep, or loads one you saved earlier. Loading one fills in the screen; press START to keep it.</p>
+            <div class="source-input-row">
+                <button type="button" id="export-btn">Save setup to a file</button>
+                <button type="button" id="import-btn">Load setup from a file</button>
+                <input type="file" id="import-file" accept="application/json,.json" hidden>
+            </div>
+        </details>
 
-<ul id="platforms-list" class="sources-list"></ul>
+        <div id="setup-error" class="form-error" role="alert"></div>
+        <div id="setup-unsaved" class="setup-unsaved" role="status" hidden>Changes not saved yet. Press START to save them.</div>
 
         <button id="start-btn">
             START IN-FORM
@@ -165,14 +200,11 @@
         </div>
         <div id="active-sources-panel" class="active-sources-panel" style="display: none;">
             <div class="sources-section">
-                <strong>Platforms</strong>
-                <ul id="active-platforms-list"></ul>
-            </div>
-            <div class="sources-section">
                 <strong>Sites</strong>
                 <ul id="active-sites-list"></ul>
             </div>
             <button type="button" id="return-to-setup-btn" class="return-setup-btn">Return to Setup</button>
+            <button type="button" id="logout-btn" class="return-setup-btn" style="display: none;">Sign out</button>
         </div>
     </div>
 </a>

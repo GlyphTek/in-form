@@ -1,0 +1,12 @@
+node_modules
+data
+.git
+.github
+.env
+.env.*
+*.log
+docs
+test
+README.md
+Dockerfile
+fly.toml
