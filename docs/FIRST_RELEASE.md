@@ -5,9 +5,7 @@ first tag as a test, and expect to fix something.
 
 ## Before tagging
 
-1. **Choose a licence.** There is no LICENSE file yet. Without one, people can download
-   the app but have no stated right to reuse or share it. Decide (for example MIT, or
-   "all rights reserved, free to use"), add `LICENSE`, and mention it in the README.
+1. **Licence:** done. MIT, copyright "JV7T9 - GlyphTek Project" (see `LICENSE`).
 2. **Merge `phase1-backend` into `main`** (a pull request on GitHub is fine) so the
    repository front page shows the new README, not the old prototype.
 3. On `main`, run `npm test` (all passing) and `npm run package:win`, then extract the zip

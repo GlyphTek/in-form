@@ -104,5 +104,5 @@ Oracle Always Free VM could run the app unchanged.
 - docs/VIDEO_SCRIPT.md (shot list, real app only) and docs/FIRST_RELEASE.md (checklist) added.
 - The Michroma font is bundled (public/fonts, SIL OFL licence alongside), replacing the
   Google Fonts import, so the page requests nothing from other sites. A test guards this.
-- OPEN: no LICENSE file; the licence choice is the owner's. The release workflow has never run.
+- Licence: MIT, "JV7T9 - GlyphTek Project" (LICENSE, package.json, README, shipped in the Windows zip). The release workflow has never run.
 - OPEN: README claims "answers only your own computer" and "no analytics": true of the code now.

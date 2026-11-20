@@ -84,6 +84,11 @@ on your own computer only; see the developer guide for password mode.
   change or stop working. If it does, the app will say the sources are unavailable.
 - Learning needs a pattern before it moves anything much; one click barely changes the order.
 
+## Licence
+
+MIT. Free to use, copy, change and share; see [LICENSE](LICENSE). The bundled font
+(Michroma) is under the SIL Open Font Licence, included in `public/fonts/`.
+
 ## For developers
 
 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) covers the architecture, API, configuration, building

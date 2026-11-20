@@ -160,7 +160,7 @@ function main() {
 
     if (nodeExe) fs.copyFileSync(nodeExe, path.join(out, "node.exe"));
     for (const dir of ["server", "public"]) fs.cpSync(path.join(root, dir), path.join(out, dir), { recursive: true });
-    for (const file of ["package.json", "package-lock.json"]) fs.copyFileSync(path.join(root, file), path.join(out, file));
+    for (const file of ["package.json", "package-lock.json", "LICENSE"]) fs.copyFileSync(path.join(root, file), path.join(out, file));
 
     // Production dependencies only, and never run install scripts: everything
     // IN-FORM depends on is plain JavaScript.
