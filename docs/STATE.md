@@ -106,3 +106,17 @@ Oracle Always Free VM could run the app unchanged.
   Google Fonts import, so the page requests nothing from other sites. A test guards this.
 - Licence: MIT, "JV7T9 - GlyphTek Project" (LICENSE, package.json, README, shipped in the Windows zip). The release workflow has never run.
 - OPEN: README claims "answers only your own computer" and "no analytics": true of the code now.
+
+## The DONE ending (Step F)
+
+- generate response has `caughtUp`: true only when every source is `ok` (not error, stale or
+  timed out) and no channel has anything to show. Never true with no sources.
+- Client: when caughtUp, the subtitle reads "You're caught up. Nothing more right now." and PRESS
+  becomes DONE. DONE goes back to the landing screen (screen reset only; seen history is kept on
+  the server). While caught up the card no longer starts runs. A failing source shows its error and
+  PRESS, never DONE.
+- Replaces the old "Nothing new right now. To see a source's items again, remove it in setup..."
+  line in the healthy case (that hint is still reachable in the partial case).
+- Known gap: the early middle (presses 3 to 15) has no nudge; DONE only appears when content runs out
+  (about 20+ presses in the builder's test). Revisit after real use. OPEN also still goes to setup, then
+  START, rather than straight to the cards.

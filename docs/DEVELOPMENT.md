@@ -106,6 +106,9 @@ returns:
   `{ id, title, link, linkText, source, published, score (1-10), reason, useful }`
   (`reason` is plain language, including any learned boost); an
   empty array means nothing suitable exists
+- `caughtUp`: `true` only when every source delivered fresh data and nothing is left to show in
+  any channel; never true when a source failed, is stale or timed out. The page turns PRESS into
+  DONE on it.
 - `hidden`: `{ seen, dismissed }`, how many items were left out because you were
   already shown them, or dismissed them
 - `sources`: per-source health (`ok` / `stale` / `error`, item count, error)

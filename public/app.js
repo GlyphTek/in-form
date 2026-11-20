@@ -944,6 +944,12 @@ if (activeSourcesToggle) {
 }
 
 let isGenerating = false;
+// True once a run found the person fully caught up: PRESS becomes DONE.
+let caughtUpMode = false;
+const PRESS_LABEL = "PRESS";
+const DONE_LABEL = "DONE";
+const CAUGHT_UP_TEXT = "You're caught up. Nothing more right now.";
+const IDLE_SUBTITLE = "Current Signals → Tap to generate";
 
 // Signals currently on screen, by server id, so Dismiss can be undone and
 // "Useful" can toggle without asking the server what it looked like.
@@ -1184,7 +1190,10 @@ function showSignals(config, result) {
             if (signals.length) checkElements[channel].classList.add("visible");
         });
 
-        tifaSubtitle.textContent = subtitleFor(result);
+        // Caught up only when the server says every source answered and nothing is
+        // left; a failed or stale source keeps its own message instead.
+        setCaughtUp(result.caughtUp === true);
+        tifaSubtitle.textContent = caughtUpMode ? CAUGHT_UP_TEXT : subtitleFor(result);
         renderActiveSources(config, result);
         isGenerating = false;
     }, 90);
@@ -1273,8 +1282,37 @@ CHANNELS.forEach(channel => {
     });
 });
 
+function setCaughtUp(on) {
+    caughtUpMode = Boolean(on);
+    if (!tifaRefreshBtn) return;
+    tifaRefreshBtn.textContent = caughtUpMode ? DONE_LABEL : PRESS_LABEL;
+    tifaRefreshBtn.classList.toggle("is-done", caughtUpMode);
+}
+
+// What each card said before any run, kept so DONE can put the screen back.
+const INITIAL_CARD_TEXT = {};
+CHANNELS.forEach(channel => { INITIAL_CARD_TEXT[channel] = contentElements[channel].innerHTML; });
+
+// DONE: back to the landing screen. This only resets what is on screen. What
+// the person has already seen stays recorded, so nothing is handed to them again.
+function finishRitual() {
+    setCaughtUp(false);
+    isGenerating = false;
+    signalsOnScreen.clear();
+    CHANNELS.forEach(channel => {
+        contentElements[channel].innerHTML = INITIAL_CARD_TEXT[channel];
+        signalElements[channel].textContent = EMPTY_BAR;
+        checkElements[channel].classList.remove("visible");
+    });
+    tifaSubtitle.textContent = IDLE_SUBTITLE;
+    if (activeSourcesWrapper) activeSourcesWrapper.style.display = "none";
+    showScreen("landing");
+}
+
 async function runTifa() {
     if (isGenerating) return;
+    // Once caught up the card no longer starts another run; DONE ends the ritual.
+    if (caughtUpMode) return;
     isGenerating = true;
 
     const config = loadConfig();
@@ -1313,7 +1351,8 @@ if (tifaRefreshBtn) {
     tifaRefreshBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        runTifa();
+        if (caughtUpMode) finishRitual();
+        else runTifa();
     });
 }
 
@@ -1333,6 +1372,7 @@ if (returnToSetupBtn) {
 
         // Hide app screen, show setup screen with the current setup loaded
         // (from the account when signed in, otherwise from this browser).
+        setCaughtUp(false);
         appScreen.style.opacity = "0";
         Promise.all([
             preloadSetup(),

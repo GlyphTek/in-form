@@ -95,3 +95,49 @@ test("concurrency is capped", async () => {
   await generateSignals({ ingestor: fakeIngestor(table), sources, concurrency: 3, now: () => NOW });
   assert.ok(peak <= 3, `peak concurrency was ${peak}`);
 });
+
+// --- caughtUp: the "you are done" state must never be a disguise for a failure ---
+
+test("caughtUp is false while something is still shown", async () => {
+  const r = await generateSignals({ ingestor: fakeIngestor({ a: ok("a", [mk("Fresh story")]) }), sources: ["a"], now: () => NOW });
+  assert.equal(r.caughtUp, false);
+});
+
+test("caughtUp is true when every source answered and everything has been seen", async () => {
+  const ingestor = fakeIngestor({ a: ok("a", [mk("Story one"), mk("Story two")]) });
+  const r = await generateSignals({ ingestor, sources: ["a"], now: () => NOW, exclude: () => "seen" });
+  assert.equal(r.caughtUp, true);
+  assert.equal(r.status, "ok");
+  assert.equal(r.hidden.seen, 2);
+});
+
+test("caughtUp is true for a healthy source that simply has nothing", async () => {
+  const r = await generateSignals({ ingestor: fakeIngestor({ a: ok("a", []) }), sources: ["a"], now: () => NOW });
+  assert.equal(r.caughtUp, true);
+});
+
+test("caughtUp is never true when a source failed, even if nothing is shown", async () => {
+  const ingestor = fakeIngestor({ a: ok("a", [mk("x")]) }); // b is unknown: an error
+  const r = await generateSignals({ ingestor, sources: ["a", "b"], now: () => NOW, exclude: () => "seen" });
+  assert.equal(r.status, "partial");
+  assert.equal(r.caughtUp, false);
+});
+
+test("caughtUp is never true when every source failed", async () => {
+  const r = await generateSignals({ ingestor: fakeIngestor({}), sources: ["a"], now: () => NOW });
+  assert.equal(r.status, "unavailable");
+  assert.equal(r.caughtUp, false);
+});
+
+test("caughtUp is never true for stale data or a timeout", async () => {
+  const stale = { input: "a", kind: "keyword", status: "stale", items: [], fetchedAt: iso(30), error: null };
+  assert.equal((await generateSignals({ ingestor: fakeIngestor({ a: stale }), sources: ["a"], now: () => NOW })).caughtUp, false);
+
+  const slow = fakeIngestor({ a: () => new Promise((resolve) => setTimeout(() => resolve(ok("a", [])), 300)) });
+  const r = await generateSignals({ ingestor: slow, sources: ["a"], now: () => NOW, deadlineMs: 20 });
+  assert.equal(r.caughtUp, false);
+});
+
+test("caughtUp is false with no sources", async () => {
+  assert.equal((await generateSignals({ ingestor: fakeIngestor({}), sources: [], now: () => NOW })).caughtUp, false);
+});

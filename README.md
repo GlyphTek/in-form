@@ -17,8 +17,10 @@ It is free, it runs on your own computer, and it has no accounts and no ads.
 | **Experience** | What may be worth exploring or taking part in |
 
 Press **PRESS** on the "Today is forming around" card for the next batch. Every item
-is shown once, so you are never handed the same story twice. When there is nothing
-new, it says so plainly instead of filling the space.
+is shown once, so you are never handed the same story twice. When you have seen
+everything your sources have, it says "You're caught up" and PRESS becomes **DONE**.
+DONE takes you back to the start screen, and what you have already seen stays seen.
+If a source can't be reached, it says that instead and never claims you are caught up.
 
 ## What it does, and what it does not
 

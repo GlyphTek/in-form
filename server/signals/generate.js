@@ -9,6 +9,10 @@
 //   channels { relevant|attention|knowing|experience: [ {title, linkText, link,
 //              source, published, score (1-10), reason}, ... up to 3, best
 //              first ] }; an empty array means nothing suitable
+//   caughtUp true only when every declared source delivered fresh data and
+//            nothing is left to show in any channel. A failing, stale or
+//            timed-out source never counts: empty cards then mean "broken", not
+//            "done", and the app must keep saying so.
 //   hidden   { seen, dismissed }: items left out because the user was already
 //            shown them, or dismissed them (see `exclude`)
 //   sources  per-source health so the UI can say exactly what is broken
@@ -140,6 +144,7 @@ export async function generateSignals({
       status: "no_sources",
       generatedAt: new Date(startedAt).toISOString(),
       channels: Object.fromEntries(CHANNELS.map((c) => [c, []])),
+      caughtUp: false,
       hidden: { seen: 0, dismissed: 0 },
       sources: [],
     };
@@ -227,10 +232,15 @@ export async function generateSignals({
     }));
   }
 
+  // Caught up = a complete, healthy run that has nothing left to show.
+  const nothingShown = CHANNELS.every((channel) => channels[channel].length === 0);
+  const caughtUp = nothingShown && sourceReports.length > 0 && sourceReports.every((s) => s.status === "ok");
+
   return {
     status,
     generatedAt: new Date(startedAt).toISOString(),
     channels,
+    caughtUp,
     hidden,
     sources: sourceReports,
   };
