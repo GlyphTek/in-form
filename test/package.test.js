@@ -16,6 +16,7 @@ test("the bundled Node is new enough for built-in SQLite and the hash is pinned"
 test("start.bat runs locally with no sign-in, keeps data outside the app folder, and uses its own node.exe", () => {
   assert.match(START_BAT, /set INFORM_AUTH=off/);
   assert.match(START_BAT, /set HOST=127\.0\.0\.1/);
+  assert.match(START_BAT, /GENERATE_RATE_LIMIT_PER_MINUTE=120/, "pressing quickly must not be refused on a one-person copy");
   assert.doesNotMatch(START_BAT, /HOST=0\.0\.0\.0/);
   assert.match(START_BAT, /DATABASE_PATH=%APPDATA%\\IN-FORM\\inform\.db/);
   assert.match(START_BAT, /set "NODE_CMD=%~dp0node\.exe"/, "prefers the node.exe next to it");

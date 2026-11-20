@@ -63,7 +63,9 @@ export function loadConfig(env = process.env) {
     // Relevant only takes items newer than this many hours (1 to 720).
     relevantMaxAgeHours: boundedInt(env.RELEVANT_MAX_AGE_HOURS, 48, 1, 720),
     rateLimitPerMinute: Number(env.RATE_LIMIT_PER_MINUTE) || 120,
-    generateRateLimitPerMinute: Number(env.GENERATE_RATE_LIMIT_PER_MINUTE) || 12,
+    // Tight (12) when it may be a shared website with a password; generous (120) when
+    // auth is off, which only ever means one person on their own computer.
+    generateRateLimitPerMinute: Number(env.GENERATE_RATE_LIMIT_PER_MINUTE) || (readAuth(env).mode === "off" ? 120 : 12),
     databasePath: path.resolve(rootDir, env.DATABASE_PATH || "data/inform.db"),
     publicDir: path.join(rootDir, "public"),
     migrationsDir: path.join(rootDir, "server", "migrations"),

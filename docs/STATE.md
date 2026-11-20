@@ -120,3 +120,14 @@ Oracle Always Free VM could run the app unchanged.
 - Known gap: the early middle (presses 3 to 15) has no nudge; DONE only appears when content runs out
   (about 20+ presses in the builder's test). Revisit after real use. OPEN also still goes to setup, then
   START, rather than straight to the cards.
+
+## Press rate limit (found in the builder's test)
+
+- The builder pressed PRESS 13 times and it stopped (then 12 on a second run). Cause: the generate
+  limit was 12 per minute per client; the next press got a 429 shown as "Live signals unavailable".
+  Reproduced in a browser.
+- Fix: default is 120/min when auth is off (one person, local) and still 12 with a password;
+  start.bat sets 120; a refused press now keeps the last batch on screen with "That was a little
+  fast. Wait a few seconds, then press again." and PRESS stays.
+- This means the builder's "13 presses to the end" may have been the limit, not the content running
+  out, so how many presses it really takes to reach DONE is not yet known.

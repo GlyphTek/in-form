@@ -46,6 +46,8 @@ export const START_BAT = [
   "if not defined PORT set PORT=3000",
   'if not defined DATABASE_PATH set "DATABASE_PATH=%APPDATA%\\IN-FORM\\inform.db"',
   "set LOG_LEVEL=warn",
+  "rem Nobody else uses this copy, so pressing as fast as you like is fine.",
+  "if not defined GENERATE_RATE_LIMIT_PER_MINUTE set GENERATE_RATE_LIMIT_PER_MINUTE=120",
   "",
   "echo.",
   "echo   IN-FORM is starting. Your browser will open at http://127.0.0.1:%PORT%",

@@ -187,7 +187,7 @@ dismissals: one per source, one per word in titles.
 | `NEWS_WINDOW` | `30d` | How far back keyword searches look (`7d`, `30d`, `12h`) |
 | `RELEVANT_MAX_AGE_HOURS` | `48` | Relevant only takes items newer than this (1 to 720); undated items are allowed |
 | `ALLOWED_ORIGINS` | (none) | Comma separated; only if a proxy rewrites `Host` |
-| `GENERATE_RATE_LIMIT_PER_MINUTE` | `12` | Per client, `/api/signals/generate` |
+| `GENERATE_RATE_LIMIT_PER_MINUTE` | `12` (`120` when `INFORM_AUTH=off`) | Per client, `/api/signals/generate`; the Windows `start.bat` sets 120 |
 
 ## Region (Local / Global / Both)
 

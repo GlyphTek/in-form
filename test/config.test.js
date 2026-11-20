@@ -206,3 +206,9 @@ test("topic sources save (stored as keyword) and unknown topics are rejected", a
   assert.match(bad.json().message, /Unknown topic/);
   await app.close();
 });
+
+test("the generate rate limit is generous for a one-person local copy and tight for a password site", () => {
+  assert.equal(loadConfig({ INFORM_AUTH: "off" }).generateRateLimitPerMinute, 120);
+  assert.equal(loadConfig({ INFORM_PASSWORD: "a long enough password" }).generateRateLimitPerMinute, 12);
+  assert.equal(loadConfig({ INFORM_AUTH: "off", GENERATE_RATE_LIMIT_PER_MINUTE: "30" }).generateRateLimitPerMinute, 30);
+});

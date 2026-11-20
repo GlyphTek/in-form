@@ -1317,6 +1317,10 @@ async function runTifa() {
 
     const config = loadConfig();
 
+    // Remembered so a refused press can put the screen back as it was.
+    const barsBefore = CHANNELS.map(channel => signalElements[channel].textContent);
+    const checksBefore = CHANNELS.map(channel => checkElements[channel].classList.contains("visible"));
+
     tifaSubtitle.textContent = "RAKE Signals generating...";
     if (activeSourcesWrapper) activeSourcesWrapper.style.display = "none";
     Object.values(checkElements).forEach(el => el.classList.remove("visible"));
@@ -1332,6 +1336,18 @@ async function runTifa() {
         if (err.kind === "unauthorized") {
             isGenerating = false;
             showLoginAgain(err.message);
+            return;
+        }
+        if (err.kind === "rate_limited") {
+            // Pressed faster than the server allows. Nothing is broken and nothing
+            // was lost, so leave the last batch on screen and say what to do.
+            CHANNELS.forEach((channel, i) => {
+                signalElements[channel].textContent = barsBefore[i];
+                checkElements[channel].classList.toggle("visible", checksBefore[i]);
+            });
+            if (activeSourcesWrapper) activeSourcesWrapper.style.display = "block";
+            tifaSubtitle.textContent = "That was a little fast. Wait a few seconds, then press again.";
+            isGenerating = false;
             return;
         }
         showUnavailable(config, err.message || "Something went wrong.");
