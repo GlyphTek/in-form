@@ -144,6 +144,52 @@ footer {
 
 footer a { margin-right: 14px; }
 
+
+.showcase {
+    display: grid;
+    grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.showcase video {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 298 / 536;
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 0 24px rgba(0, 255, 136, .12);
+}
+
+.stills {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.stills figure { margin: 0; }
+
+.stills img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 298 / 480;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.stills figcaption { font-size: .8rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+
+.showcase-note { font-size: .85rem; color: var(--muted); margin-top: 14px; max-width: 40em; }
+
+@media (max-width: 640px) {
+    .showcase { grid-template-columns: 1fr; }
+    .showcase video { max-width: 320px; margin: 0 auto; }
+}
+
 @media (max-width: 480px) {
     main { padding-top: 40px; }
     .btn { width: 100%; text-align: center; }
@@ -164,6 +210,23 @@ footer a { margin-right: 14px; }
         <a class="btn" href="https://github.com/GlyphTek/in-form">SOURCE ON GITHUB</a>
     </div>
     <p class="note">Windows only for now. The app is not code-signed, so Windows may warn you the first time; the steps are below.</p>
+
+    <section>
+        <h2>SEE IT IN ACTION</h2>
+        <div class="showcase">
+            <video controls preload="metadata" playsinline poster="media/inform-showcase-poster.jpg" aria-label="A 79-second walkthrough of IN-FORM: choosing topics and a region, pressing for the four channels, and reaching DONE">
+                <source src="media/inform-showcase.mp4" type="video/mp4">
+                Your browser cannot play this video. You can <a href="media/inform-showcase.mp4">download it</a> instead.
+            </video>
+            <div class="stills">
+                <figure><img src="media/still-setup.jpg" alt="The setup screen: topic chips, with Technology, Science and News selected, then Local, Global and Both, and a region menu reading Choose a region." loading="lazy"><figcaption>1. Choose what forms your day, and where news comes from.</figcaption></figure>
+                <figure><img src="media/still-cards.jpg" alt="The four channels, Relevant, Attention, Knowing and Experience, each with a filled bar and a tick, above the Today is forming around card with Active Sources and PRESS." loading="lazy"><figcaption>2. Four channels, up to three items in each.</figcaption></figure>
+                <figure><img src="media/still-why.jpg" alt="An open Relevant channel listing news headlines, each with a plain-language reason line and Useful and Dismiss buttons." loading="lazy"><figcaption>3. Every item says why it is there.</figcaption></figure>
+                <figure><img src="media/still-done.jpg" alt="The Today is forming around card reading You're caught up. Nothing more right now, with a DONE button where PRESS was." loading="lazy"><figcaption>4. When you are caught up, it ends: PRESS becomes DONE.</figcaption></figure>
+            </div>
+        </div>
+        <p class="showcase-note">Recorded from the real app. The headlines change every day.</p>
+    </section>
 
     <section>
         <h2>THE FOUR CHANNELS (R.A.K.E)</h2>

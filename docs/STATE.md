@@ -159,3 +159,14 @@ Oracle Always Free VM could run the app unchanged.
   (no Windows here); the CI is the first compile.
 - Unsigned: SmartScreen still warns. Version bumped to 0.2.0 (file names come from package.json).
 
+## Showcase on the download page
+
+- `media/`: `inform-showcase.mp4` (the builder's 79-second recording, from the second Clipchamp export (298x536, 9:16),
+  black frames trimmed, about 5 MB), a poster, and four stills pulled with ffmpeg at 10 s, 64 s, 34 s and
+  46 s (setup, cards, "why" line, DONE; captions cropped off). Real app, no mock data. Self-hosted, so the
+  page still loads nothing from other sites; a test checks every media file referenced exists, stays
+  small, has alt text, has controls and no autoplay.
+- The recording is only 298 px wide (Clipchamp would not export larger), so text is a little soft. One caption still says "Select a new platform" (about 58 s); platforms no longer exist.
+- The install-explainer video does not exist yet. Link it from the Install section when it does (a
+  plain link, not an embed).
+

@@ -70,3 +70,19 @@ test("the release workflow builds the installer on Windows, tests it, and checks
   assert.match(y, /needs: \[packages, installer\]/, "nothing is published unless the install test passed");
   assert.match(y, /--repo "\$\{GITHUB_REPOSITORY\}"/, "the publish job has no checkout");
 });
+
+test("the download page's showcase only uses media that is in the repo and small enough to host", () => {
+  const html = read("index.html");
+  const refs = [...html.matchAll(/(?:src|poster|href)="(media\/[^"]+)"/g)].map((m) => m[1]);
+  assert.ok(refs.length >= 6, "video, poster and four stills");
+  let total = 0;
+  for (const ref of new Set(refs)) {
+    const file = path.join(root, ref);
+    assert.ok(fs.existsSync(file), `${ref} is referenced but missing`);
+    total += fs.statSync(file).size;
+  }
+  assert.ok(total < 15 * 1048576, `media is ${(total / 1048576).toFixed(1)} MB; keep the page light`);
+  for (const img of html.matchAll(/<img [^>]*>/g)) assert.match(img[0], /alt="[^"]{20,}"/, "every still needs real alt text");
+  assert.match(html, /<video [^>]*controls/, "the video has controls");
+  assert.doesNotMatch(html, /<video [^>]*autoplay/, "no autoplay");
+});
