@@ -19,7 +19,7 @@ no sped-up loading. If something is slow, leave it; the honesty is the point.
 | 1 | 0:00 | Landing screen: IN-FORM, "YOUR DAY" | "This is IN-FORM, a small daily orientation tool." |
 | 2 | 0:08 | Press OPEN. The setup screen shows the topic chips | "You start by choosing what forms your day." |
 | 3 | 0:15 | Tap 3 or 4 chips, for example Technology, Science, News, Relationships and wellbeing | "Pick topics, not websites." |
-| 4 | 0:25 | Local / Global / Both with your region already guessed. Choose Both | "Choose whether news should be local, global or both. It guesses your region, and you can change it." |
+| 4 | 0:25 | Local / Global / Both. Leave it on Local and open the region menu, which reads "Choose a region" (reset it by hand: the app pre-fills a region from your time zone) | "Choose whether news should be local, global or both, and pick your region. Until you do, you get the global sources." |
 | 5 | 0:35 | Open "Add your own" briefly, type one topic, then close it | "You can add your own topics, sites or feeds too." |
 | 6 | 0:42 | Press START IN-FORM | "Then press start." |
 | 7 | 0:48 | The app screen: four cards (Relevant, Attention, Knowing, Experience). Tap the "Today is forming around" card and let it generate | "Four channels: what is relevant, what needs attention, what helps you know, and what you might experience. Up to three items each." |
