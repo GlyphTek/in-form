@@ -131,3 +131,10 @@ Oracle Always Free VM could run the app unchanged.
   fast. Wait a few seconds, then press again." and PRESS stays.
 - This means the builder's "13 presses to the end" may have been the limit, not the content running
   out, so how many presses it really takes to reach DONE is not yet known.
+
+## Download page (GitHub Pages)
+
+- `index.html` at the repo root is a static download page in the app's look (fonts from public/fonts,
+  no outside requests; a test guards this). Pages serves it from main / (root); docs/*.md still render
+  at /docs/*.html. Its Download button points at /releases/latest, so merge it AFTER the first release.
+- No demo video on it yet (none exists). Add the link once recorded.
