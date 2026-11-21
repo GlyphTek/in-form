@@ -1,9 +1,15 @@
-# Builds the portable Windows package and attaches it to a GitHub Release.
+# Builds IN-FORM for Windows (the installer and the portable zips) and attaches
+# them to a GitHub Release.
 #
 #   git tag v0.2.0 && git push origin v0.2.0      publishes a release
-#   Actions > Release > Run workflow              builds the zip only (no release)
+#   Actions > Release > Run workflow              builds everything and runs the
+#                                                 install test, but publishes nothing
 #
-# NOT YET RUN: the first run will show whether the pieces fit together.
+# Three jobs:
+#   packages   Linux: tests, then the full and lite portable zips
+#   installer  Windows: compiles the launcher, builds the setup program, then really
+#              installs it, starts IN-FORM, checks it answers, stops it and uninstalls
+#   publish    Linux: checksums for every file, and the release itself
 
 name: Release
 
@@ -16,7 +22,7 @@ permissions:
   contents: write
 
 jobs:
-  windows-package:
+  packages:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,13 +49,130 @@ jobs:
           echo "actual   $ACTUAL"
           test -n "$EXPECTED" && test "$EXPECTED" = "$ACTUAL"
 
-      - name: Checksum
-        run: cd dist && sha256sum in-form-*.zip > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: in-form-zips
+          path: dist/in-form-*.zip
+
+  installer:
+    needs: packages
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: in-form-zips
+          path: zips
+
+      - name: Unpack the full package
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem zips -Filter 'in-form-*-win-x64.zip' | Select-Object -First 1
+          Write-Host "Using $($zip.Name)"
+          Expand-Archive -Path $zip.FullName -DestinationPath build
+          $dir = Get-ChildItem build -Directory | Select-Object -First 1
+          "PACKAGE_DIR=$($dir.FullName)" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "APP_VERSION=$(node -p "require('./package.json').version")" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      - name: Compile the launcher (IN-FORM.exe)
+        shell: pwsh
+        run: |
+          $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          & $csc /nologo /target:winexe /out:IN-FORM.exe /win32icon:installer\inform.ico /reference:System.Windows.Forms.dll installer\IN-FORM.cs
+          if ($LASTEXITCODE -ne 0) { throw "csc failed" }
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build the setup program
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path out | Out-Null
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          & $iscc "/DAppVersion=$env:APP_VERSION" "/DSourceDir=$env:PACKAGE_DIR" "/DLauncherExe=$((Resolve-Path IN-FORM.exe).Path)" "/O$((Resolve-Path out).Path)" installer\inform.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
+          Get-ChildItem out
+
+      # The real test: install it, start it, ask it a question, stop it, uninstall it.
+      - name: Install, run, stop and uninstall
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem out -Filter 'IN-FORM-Setup-*.exe' | Select-Object -First 1).FullName
+          $dir = Join-Path $env:RUNNER_TEMP 'in-form-installed'
+          $log = Join-Path $env:APPDATA 'IN-FORM\inform.log'
+          $env:INFORM_NO_BROWSER = '1'
+          $env:DATABASE_PATH = Join-Path $env:RUNNER_TEMP 'inform-test.db'
+
+          function Show-Log { if (Test-Path $log) { Write-Host '--- inform.log ---'; Get-Content $log } }
+
+          Start-Process -FilePath $setup -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=$dir" -Wait
+          foreach ($f in 'IN-FORM.exe', 'node.exe', 'server\index.js', 'public\index.html', 'LICENSE') {
+            if (-not (Test-Path (Join-Path $dir $f))) { throw "installed folder is missing $f" }
+          }
+          foreach ($f in 'start.bat', 'README.txt') {
+            if (Test-Path (Join-Path $dir $f)) { throw "$f should not be in the installed folder" }
+          }
+
+          $launcher = Join-Path $dir 'IN-FORM.exe'
+          $p = Start-Process -FilePath $launcher -ArgumentList '--quiet' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Show-Log; throw "launcher exit code $($p.ExitCode)" }
+
+          try {
+            $health = Invoke-WebRequest http://127.0.0.1:3000/api/health -UseBasicParsing
+            $page = Invoke-WebRequest http://127.0.0.1:3000/ -UseBasicParsing
+            $topics = Invoke-RestMethod http://127.0.0.1:3000/api/topics
+          } catch { Show-Log; throw }
+          if ($health.StatusCode -ne 200) { throw 'health check did not return 200' }
+          if ($page.Content -notmatch 'IN-FORM') { throw 'home page does not look like IN-FORM' }
+          if ($topics.topics.Count -lt 7) { throw 'topics are missing' }
+
+          # Launching again must reuse the running server, not start a second one.
+          $p2 = Start-Process -FilePath $launcher -ArgumentList '--quiet' -Wait -PassThru
+          if ($p2.ExitCode -ne 0) { Show-Log; throw "second launch exit code $($p2.ExitCode)" }
+          $running = @(Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$dir*" })
+          if ($running.Count -ne 1) { throw "expected one IN-FORM node process, found $($running.Count)" }
+
+          $s = Start-Process -FilePath $launcher -ArgumentList '--stop', '--quiet' -Wait -PassThru
+          if ($s.ExitCode -ne 0) { Show-Log; throw "stop exit code $($s.ExitCode)" }
+          Start-Sleep -Seconds 2
+          $stillUp = $true
+          try { Invoke-WebRequest http://127.0.0.1:3000/api/health -UseBasicParsing -TimeoutSec 3 | Out-Null } catch { $stillUp = $false }
+          if ($stillUp) { throw 'IN-FORM still answered after stop' }
+
+          Start-Process -FilePath (Join-Path $dir 'unins000.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait
+          Start-Sleep -Seconds 2
+          if (Test-Path $launcher) { throw 'uninstall left IN-FORM.exe behind' }
+          Write-Host 'Install, run, stop and uninstall all worked.'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: in-form-win-x64
+          name: in-form-setup
+          path: out/IN-FORM-Setup-*.exe
+
+  publish:
+    needs: [packages, installer]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: in-form-zips
+          path: dist
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: in-form-setup
+          path: dist
+
+      - name: Checksums
+        run: cd dist && sha256sum IN-FORM-Setup-*.exe in-form-*.zip > SHA256SUMS.txt && cat SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: in-form-release-files
           path: |
+            dist/IN-FORM-Setup-*.exe
             dist/in-form-*.zip
             dist/SHA256SUMS.txt
 
@@ -58,6 +181,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" dist/in-form-*.zip dist/SHA256SUMS.txt \
+          gh release create "${GITHUB_REF_NAME}" dist/IN-FORM-Setup-*.exe dist/in-form-*.zip dist/SHA256SUMS.txt \
+            --repo "${GITHUB_REPOSITORY}" \
             --title "IN-FORM ${GITHUB_REF_NAME}" \
-            --notes "Windows (portable): download the full zip (about 34 MB, includes everything) or the -lite zip (about 2 MB, needs Node.js 22.13 or newer already installed), extract it, double-click start.bat. Not code-signed, so Windows may warn; see README.txt inside the zip. SHA-256 of the zip is in SHA256SUMS.txt."
+            --notes "Windows. Easiest: download IN-FORM-Setup-*.exe and run it; IN-FORM gets a Start menu icon (and an optional desktop icon) and opens like any app, with no black window. Prefer no installer? Download the full zip (about 34 MB, includes everything) or the -lite zip (about 2 MB, needs Node.js 22.13 or newer already installed), extract it and double-click start.bat. Nothing is code-signed, so Windows may warn the first time: choose More info, then Run anyway. SHA-256 of every file is in SHA256SUMS.txt."

@@ -39,14 +39,29 @@ If a source can't be reached, it says that instead and never claims you are caug
 
 ## Download and run (Windows)
 
-1. Download `in-form-<version>-win-x64.zip` from the
-   [Releases page](https://github.com/GlyphTek/in-form/releases). It is about 34 MB and
+**Installer (easiest).**
+
+1. Download `IN-FORM-Setup-<version>.exe` from the
+   [Releases page](https://github.com/GlyphTek/in-form/releases) and run it. It installs
+   for you only (no administrator prompt) and adds an IN-FORM icon to the Start menu,
+   and to the desktop if you tick the box.
+2. Click the icon. IN-FORM opens in your browser, with no black window. Once you have
+   finished, closing the browser tab is enough. It keeps running quietly in the
+   background until you sign out or restart; to stop it sooner, use **Stop IN-FORM** in
+   the Start menu.
+3. To remove it, use Windows Settings, Apps. It asks whether to keep your setup and history.
+
+**Portable zip (no installer).**
+
+1. Download `in-form-<version>-win-x64.zip` from the same page. It is about 34 MB and
    includes everything. If you already have Node.js 22.13 or newer installed, the
    `-lite.zip` is about 2 MB and works the same way.
 2. Right-click the zip, choose **Properties**, tick **Unblock** if it is shown, then
    **Extract All**.
 3. Open the folder and double-click **`start.bat`**. Your browser opens on IN-FORM.
    Keep the black window open while you use it, and close it to stop.
+
+The installer and the zip use the same setup and history, so you can switch between them.
 
 **Windows may warn you.** The app is not code-signed (signing costs money), so Windows
 SmartScreen can say "Windows protected your PC". Choose **More info**, then **Run
