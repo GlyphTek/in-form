@@ -1,7 +1,13 @@
-name: Test and deploy
+name: Test (and optional Fly.io deploy)
 
-# Every push to main runs the tests and, only if they pass, deploys to Fly.io.
-# Needs one repository secret: FLY_API_TOKEN (see docs/DEPLOY.md).
+# Every push to main and every pull request runs the tests.
+#
+# Deploying to Fly.io is OFF by default: IN-FORM is a downloadable app and there is no
+# hosted copy yet, so a deploy on every push would just fail (no FLY_API_TOKEN) and put
+# a red cross on main. When a hosted copy exists, add the FLY_API_TOKEN secret (see
+# docs/DEPLOY.md) and run this workflow by hand: Actions > Test (and optional Fly.io
+# deploy) > Run workflow, on main. To deploy on every push again, change the deploy
+# job's `if:` back to `github.ref == 'refs/heads/main' && github.event_name != 'pull_request'`.
 
 on:
   push:
@@ -27,7 +33,7 @@ jobs:
 
   deploy:
     needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

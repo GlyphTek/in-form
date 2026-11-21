@@ -8,7 +8,9 @@ together, runs on one host: **Fly.io**, with a small volume for the SQLite
 database. One origin keeps the cookie sign-in simple and avoids cross-site
 cookie problems.
 
-`Dockerfile`, `fly.toml` and `.github/workflows/deploy.yml` are ready. They have
+`Dockerfile`, `fly.toml` and `.github/workflows/deploy.yml` are ready. (The workflow runs the tests on
+every push; deploying is a manual "Run workflow" on main, because there is no hosted copy yet and an
+automatic deploy would fail on every push.) They have
 not been run end to end by the person who wrote them: the sandbox this was built
 in has no Docker daemon and no Fly access. The server itself was started from a
 production-style install and exercised (health, sign-in, `Secure` cookie, config
