@@ -138,3 +138,24 @@ Oracle Always Free VM could run the app unchanged.
   no outside requests; a test guards this). Pages serves it from main / (root); docs/*.md still render
   at /docs/*.html. Its Download button points at /releases/latest, so merge it AFTER the first release.
 - No demo video on it yet (none exists). Add the link once recorded.
+
+## Windows installer (v0.2.0)
+
+- `installer/`: `IN-FORM.cs` (launcher, compiled in CI by the .NET Framework `csc` that ships with
+  Windows, so C# 5 only; a test guards that), `inform.iss` (Inno Setup script), `inform.ico` and
+  `make-icon.py`. Per-user install into %LOCALAPPDATA%\Programs\IN-FORM, no admin prompt, Start menu
+  icon, optional desktop icon, "Stop IN-FORM" shortcut, uninstaller that asks before deleting
+  %APPDATA%\IN-FORM.
+- The launcher is start.bat without the console: same env (auth off, 127.0.0.1, 120 presses/min), same
+  data folder, so the portable zip and the installer share a setup. Server output goes to
+  %APPDATA%\IN-FORM\inform.log. A second click reuses a running server (health check). `--stop`
+  kills the cmd.exe tree it recorded in inform.pid; `--quiet` suppresses dialogs.
+- The server keeps running after the browser tab closes, until sign-out, restart or Stop. Possible
+  later: exit when idle for some hours.
+- release.yml is now three jobs: packages (Linux) -> installer (windows-latest: builds the launcher and
+  setup, then silently installs, starts, queries /api/health, /, /api/topics, relaunches, stops and
+  uninstalls) -> publish (checksums for setup exe and zips, release). Run "Run workflow" first to test
+  without publishing. NOT YET RUN: the launcher and the Inno script have never been compiled by me
+  (no Windows here); the CI is the first compile.
+- Unsigned: SmartScreen still warns. Version bumped to 0.2.0 (file names come from package.json).
+
