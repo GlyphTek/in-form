@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IN-FORM: a finite feed you control</title>
+<meta name="description" content="IN-FORM shows up to three items in each of four channels from the topics you chose, then stops. Free, runs on your own computer, no accounts.">
+<style>
+@font-face {
+    font-family: 'Michroma';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 400;
+    src: url(public/fonts/michroma-latin-400-normal.woff2) format('woff2');
+}
+
+:root {
+    --bg: #050505;
+    --panel: #0d0d0d;
+    --accent: #00ff88;
+    --secondary: #00d4ff;
+    --border: rgba(0, 255, 136, .18);
+    --text: #d6d6d6;
+    --muted: #9a9a9a;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: radial-gradient(circle at top center, rgba(0, 255, 136, .07), transparent 55%), var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 56px 20px 40px;
+}
+
+h1, h2, .eyebrow, .btn, .rake dt {
+    font-family: 'Michroma', system-ui, sans-serif;
+    font-weight: 400;
+}
+
+h1 {
+    font-size: clamp(2.2rem, 9vw, 3.6rem);
+    letter-spacing: .12em;
+    color: var(--accent);
+    text-shadow: 0 0 14px rgba(0, 255, 136, .45);
+    line-height: 1.1;
+}
+
+.eyebrow {
+    color: var(--secondary);
+    font-size: .8rem;
+    letter-spacing: .18em;
+    margin-bottom: 14px;
+}
+
+.lead {
+    font-size: 1.15rem;
+    margin: 22px 0 8px;
+    max-width: 38em;
+}
+
+.sub { color: var(--muted); max-width: 38em; }
+
+.cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 30px 0 10px;
+}
+
+.btn {
+    display: inline-block;
+    padding: 14px 22px;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: .85rem;
+    letter-spacing: .08em;
+}
+
+.btn.primary { background: var(--accent); color: #031a0e; }
+.btn:hover, .btn:focus-visible { box-shadow: 0 0 16px rgba(0, 255, 136, .45); outline: none; }
+.btn.primary:hover { background: #4dffb0; }
+
+.note { font-size: .9rem; color: var(--muted); max-width: 40em; }
+
+section { margin-top: 52px; }
+
+h2 {
+    font-size: .95rem;
+    letter-spacing: .14em;
+    color: var(--secondary);
+    margin-bottom: 18px;
+}
+
+.rake {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+}
+
+.rake div {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+}
+
+.rake dt { color: var(--accent); font-size: .8rem; letter-spacing: .12em; margin-bottom: 6px; }
+.rake dd { color: var(--text); font-size: .95rem; }
+
+ul { padding-left: 1.2em; max-width: 42em; }
+li { margin: 8px 0; }
+li strong { color: #fff; font-weight: 600; }
+
+ol { padding-left: 1.3em; max-width: 42em; }
+ol li { margin: 10px 0; }
+
+code {
+    background: #151515;
+    border: 1px solid #262626;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: .9em;
+}
+
+a { color: var(--secondary); }
+
+footer {
+    margin-top: 64px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+footer a { margin-right: 14px; }
+
+@media (max-width: 480px) {
+    main { padding-top: 40px; }
+    .btn { width: 100%; text-align: center; }
+}
+</style>
+</head>
+<body>
+<main>
+
+    <p class="eyebrow">TODAY IS FORMING AROUND</p>
+    <h1>IN-FORM</h1>
+
+    <p class="lead">A small daily orientation tool. You choose what forms your day. It shows up to three items in each of four channels, then lets you stop.</p>
+    <p class="sub">Free, runs on your own computer, no accounts, no ads. It is not a feed: when you have seen everything your sources have, it says so and ends.</p>
+
+    <div class="cta">
+        <a class="btn primary" href="https://github.com/GlyphTek/in-form/releases/latest">DOWNLOAD FOR WINDOWS</a>
+        <a class="btn" href="https://github.com/GlyphTek/in-form">SOURCE ON GITHUB</a>
+    </div>
+    <p class="note">Windows only for now. The app is not code-signed, so Windows may warn you the first time; the steps are below.</p>
+
+    <section>
+        <h2>THE FOUR CHANNELS (R.A.K.E)</h2>
+        <dl class="rake">
+            <div><dt>RELEVANT</dt><dd>What is current and close to the things you chose, from the last 48 hours.</dd></div>
+            <div><dt>ATTENTION</dt><dd>What may need your awareness or action.</dd></div>
+            <div><dt>KNOWING</dt><dd>What may deepen your understanding.</dd></div>
+            <div><dt>EXPERIENCE</dt><dd>What may be worth exploring or taking part in.</dd></div>
+        </dl>
+    </section>
+
+    <section>
+        <h2>WHAT MAKES IT DIFFERENT</h2>
+        <ul>
+            <li><strong>You choose the topics.</strong> Technology, Science, News, Sport, Education, Religion, Relationships and wellbeing, plus your own topics, sites and feeds. News, Sport and Education can be local, global or both.</li>
+            <li><strong>It ends.</strong> Three items per channel, each shown once. When you are caught up, PRESS becomes DONE.</li>
+            <li><strong>It says why.</strong> Each item carries a plain-language reason for where it landed.</li>
+            <li><strong>It learns gently.</strong> Opening, marking Useful and dismissing nudge the order. Learning alone never hides anything.</li>
+            <li><strong>It is honest when something breaks.</strong> If a source cannot be reached it says which one, and never shows placeholder content.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>INSTALL (WINDOWS)</h2>
+        <ol>
+            <li>Download the zip from the <a href="https://github.com/GlyphTek/in-form/releases/latest">latest release</a>. The full zip (about 34 MB) includes everything. The <code>-lite</code> zip (about 2 MB) needs <a href="https://nodejs.org">Node.js</a> 22.13 or newer already installed.</li>
+            <li>Right-click the zip, choose <strong>Properties</strong>, tick <strong>Unblock</strong> if it is shown, then <strong>Extract All</strong>.</li>
+            <li>Open the folder and double-click <code>start.bat</code>. Your browser opens on IN-FORM. Keep the black window open while you use it.</li>
+            <li>If Windows says <em>Windows protected your PC</em>, choose <strong>More info</strong>, then <strong>Run anyway</strong>. Do this only for a file from the official release page. Each release lists a SHA-256 checksum so you can check your download.</li>
+        </ol>
+    </section>
+
+    <section>
+        <h2>YOUR DATA AND PRIVACY</h2>
+        <ul>
+            <li>Your setup and history stay on your computer. There are no accounts and no analytics.</li>
+            <li>It contacts only the news sources you chose: Google News searches for topics, plus any sites or feeds you add. The page fonts are bundled, so nothing is requested from other sites.</li>
+            <li>It answers only your own computer, so other devices on your network cannot reach it.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>KNOWN LIMITS</h2>
+        <ul>
+            <li>English-language sources only, and a Windows download only, for now.</li>
+            <li>The channels come from keyword cues, not artificial intelligence, so an item is sometimes in the wrong channel.</li>
+            <li>Topics use Google News' public search feed, which is not an official interface and could change.</li>
+        </ul>
+    </section>
+
+    <footer>
+        <a href="https://github.com/GlyphTek/in-form">GitHub</a>
+        <a href="https://github.com/GlyphTek/in-form/releases/latest">Releases</a>
+        <a href="docs/DEVELOPMENT.html">Developer guide</a>
+        <a href="https://github.com/GlyphTek/in-form/blob/main/LICENSE">MIT licence</a>
+        <p style="margin-top:12px">Made by JV7T9 - GlyphTek Project.</p>
+    </footer>
+
+</main>
+</body>
+</html>

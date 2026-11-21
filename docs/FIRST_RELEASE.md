@@ -49,3 +49,9 @@ then fix, commit, and tag again.
 
 English only; Windows only; unsigned; Google News regional coverage varies; South
 America has no local English edition. These are listed in the README.
+
+## The download page
+
+`index.html` in the repo root is the GitHub Pages landing page (https://glyphtek.github.io/in-form/).
+Its buttons point to the latest release, so it is only useful once a release exists. After the video
+exists, add its link near the top of that page and in the README.

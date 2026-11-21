@@ -65,7 +65,7 @@ test("the app loads nothing from other websites: fonts are served locally and no
   assert.equal((await app.inject({ url: "/fonts/Michroma-OFL.txt" })).statusCode, 200, "the font licence ships with the font");
   await app.close();
 
-  for (const file of ["public/index.html", "public/style.css", "public/app.js"]) {
+  for (const file of ["public/index.html", "public/style.css", "public/app.js", "index.html"]) {
     const text = fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
     // Links the user clicks (such as the item links) are built at run time; here we
     // only look for resources the page would fetch by itself.
