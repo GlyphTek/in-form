@@ -1,6 +1,8 @@
 // Builds the Fastify app. Kept separate from index.js so tests can create an
 // app with an in-memory database and call it via app.inject() without a port.
 
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import rateLimit from "@fastify/rate-limit";
@@ -137,6 +139,12 @@ export async function buildApp(config, { db: providedDb, ingestor: providedInges
     await app.register(signalRoutes, { ingestor, store, signals, generateOptions: runOptions });
   }
 
+  // The version people are running, so a bug report can name it.
+  let version = "unknown";
+  try {
+    version = JSON.parse(readFileSync(path.join(config.rootDir, "package.json"), "utf8")).version || "unknown";
+  } catch { /* the version is a convenience */ }
+
   app.get("/api/health", async (request, reply) => {
     let database = "ok";
     let migrations = null;
@@ -154,6 +162,7 @@ export async function buildApp(config, { db: providedDb, ingestor: providedInges
       uptimeSeconds: Math.round(process.uptime()),
       env: config.env,
       mode: config.mode,
+      version,
     };
   });
 

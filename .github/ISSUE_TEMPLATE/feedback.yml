@@ -1,0 +1,29 @@
+name: Feedback or an idea
+description: Tell me what you think of IN-FORM, what worked, what did not, or what you would change.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for trying IN-FORM. Short is fine. Please do not include personal details: this page is public.
+  - type: textarea
+    id: thoughts
+    attributes:
+      label: What did you think?
+      description: What was useful, confusing or missing?
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did you use it?
+      options:
+        - Windows app
+        - Phone app (added to the home screen)
+        - Phone, in the browser
+        - Other
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Filled in for you when you came from inside IN-FORM. Otherwise it is on the download page.

@@ -1,0 +1,40 @@
+name: Something is not working
+description: Report a bug or something that looks wrong.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for telling me. Please do not include personal details: this page is public. A screenshot helps a lot.
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened?
+      description: What did you do, and what did you see?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did it happen?
+      options:
+        - Windows app
+        - Phone app (added to the home screen)
+        - Phone, in the browser
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Filled in for you when you came from inside IN-FORM. Otherwise it is on the download page.
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      description: For example, iPhone 11 Pro with Safari, or Windows 11 with Edge.
