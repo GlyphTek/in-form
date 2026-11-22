@@ -272,3 +272,9 @@ Fly.io (files exist in Dockerfile, fly.toml, deploy.yml, never run). Steps: 1 in
 - Only a `vX.Y.Z` tag and a github.com/GlyphTek/in-form/releases/ link are believed (checked on the server and again in the page). Page and README privacy wording updated to say so.
 - Verified with a pretend GitHub (newer, same, unreachable) in Chromium and unit tests; the sandbox cannot reach api.github.com, so the real call is unverified until a release newer than the running copy exists.
 - Not verified: that running the new installer over an old install keeps everything as expected (setup and history live in %APPDATA%\IN-FORM, separate from the program); the install test in CI only covers a fresh install.
+
+## Release 0.3.0 (release-0.3.0 branch)
+
+- Version 0.3.0 (package.json and lock), CHANGELOG.md with this version's notes, and the release workflow now publishes the matching CHANGELOG section as the release notes (a test fails if the package version has no section).
+- Correction to an earlier note: copies older than 0.3.0 do not contain the update check, so v0.2.0 will NOT show a notice for 0.3.0. The first real test of the notice is a 0.3.0 copy seeing a later release.
+- Updating over an old install uses the same AppId, so it should upgrade in place; if IN-FORM is running its files may be locked, so stop it first. The CI install test covers a fresh install only; an upgrade-over-old test is not written.

@@ -1,7 +1,7 @@
 # Builds IN-FORM for Windows (the installer and the portable zips) and attaches
 # them to a GitHub Release.
 #
-#   git tag v0.2.0 && git push origin v0.2.0      publishes a release
+#   git tag v0.3.0 && git push origin v0.3.0      publishes a release
 #   Actions > Release > Run workflow              builds everything and runs the
 #                                                 install test, but publishes nothing
 #
@@ -173,6 +173,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           name: in-form-zips
@@ -194,6 +196,18 @@ jobs:
             dist/in-form-*.zip
             dist/SHA256SUMS.txt
 
+      # The notes are this version's section of CHANGELOG.md, then how to install.
+      - name: Write the release notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          {
+            awk -v v="$VERSION" '$0 == "## " v {on=1; next} /^## / {on=0} on' CHANGELOG.md
+            echo
+            echo "Windows. Easiest: download IN-FORM-Setup-*.exe and run it; IN-FORM gets a Start menu icon (and an optional desktop icon) and opens like any app, with no black window. Prefer no installer? Download the full zip (about 34 MB, includes everything) or the -lite zip (about 2 MB, needs Node.js 22.13 or newer already installed), extract it and double-click start.bat. Nothing is code-signed, so Windows may warn the first time: choose More info, then Run anyway. SHA-256 of every file is in SHA256SUMS.txt."
+          } > notes.md
+          cat notes.md
+
       - name: Publish the release
         if: startsWith(github.ref, 'refs/tags/v')
         env:
@@ -202,4 +216,4 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" dist/IN-FORM-Setup-*.exe dist/in-form-*.zip dist/SHA256SUMS.txt \
             --repo "${GITHUB_REPOSITORY}" \
             --title "IN-FORM ${GITHUB_REF_NAME}" \
-            --notes "Windows. Easiest: download IN-FORM-Setup-*.exe and run it; IN-FORM gets a Start menu icon (and an optional desktop icon) and opens like any app, with no black window. Prefer no installer? Download the full zip (about 34 MB, includes everything) or the -lite zip (about 2 MB, needs Node.js 22.13 or newer already installed), extract it and double-click start.bat. Nothing is code-signed, so Windows may warn the first time: choose More info, then Run anyway. SHA-256 of every file is in SHA256SUMS.txt."
+            --notes-file notes.md
