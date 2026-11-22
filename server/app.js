@@ -14,12 +14,15 @@ import { createConfigStore } from "./store/config.js";
 import authRoutes from "./routes/auth.js";
 import configRoutes from "./routes/config.js";
 import signalRoutes from "./routes/signals.js";
+import hostedRoutes from "./routes/hosted.js";
 
 const STATE_CHANGING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-export async function buildApp(config, { db: providedDb, ingestor: providedIngestor, generateOptions } = {}) {
+export async function buildApp(config, { db: providedDb, ingestor: providedIngestor, generateOptions, logStream } = {}) {
+  // Hosted mode is the public phone website: no accounts, nothing stored about anyone.
+  const hosted = config.mode === "hosted";
   const app = Fastify({
-    logger: config.logLevel === "silent" ? false : { level: config.logLevel },
+    logger: config.logLevel === "silent" ? false : { level: config.logLevel, ...(logStream ? { stream: logStream } : {}) },
     // Behind Fly.io / nginx set TRUST_PROXY=true so client IPs (and therefore
     // rate limits) are the real ones. Off by default so it cannot be spoofed.
     trustProxy: config.trustProxy ?? false,
@@ -35,9 +38,10 @@ export async function buildApp(config, { db: providedDb, ingestor: providedInges
 
   // Throws (and the process exits) when no auth mode is configured, so a
   // forgotten INFORM_PASSWORD can never leave a deployed instance open.
-  const auth = createAuth({ db, config });
-  const store = createConfigStore(db);
-  const signals = createSignalStore(db);
+  // (Hosted mode has no sign-in at all, so it creates none of these.)
+  const auth = hosted ? null : createAuth({ db, config });
+  const store = hosted ? null : createConfigStore(db);
+  const signals = hosted ? null : createSignalStore(db);
 
   app.decorate("config", config);
   app.decorate("db", db);
@@ -47,8 +51,10 @@ export async function buildApp(config, { db: providedDb, ingestor: providedInges
 
   // --- Identity ----------------------------------------------------------------
   // Registered before the hooks below so request.cookies is already populated.
-  await app.register(cookie);
-  app.decorateRequest("user", null);
+  if (!hosted) {
+    await app.register(cookie);
+    app.decorateRequest("user", null);
+  }
 
   // Browsers always send Origin on cross-origin writes. Refusing a mismatch,
   // together with SameSite=Lax cookies and JSON-only bodies, closes off CSRF.
@@ -68,20 +74,24 @@ export async function buildApp(config, { db: providedDb, ingestor: providedInges
     }
   });
 
-  app.addHook("onRequest", async (request) => {
-    if (!request.url.startsWith("/api/")) return;
-    if (auth.mode === "off") {
-      request.user = auth.owner();
-      return;
-    }
-    const token = request.cookies?.[SESSION_COOKIE];
-    request.user = token ? auth.userForToken(token) : null;
-  });
+  if (!hosted) {
+    app.addHook("onRequest", async (request) => {
+      if (!request.url.startsWith("/api/")) return;
+      if (auth.mode === "off") {
+        request.user = auth.owner();
+        return;
+      }
+      const token = request.cookies?.[SESSION_COOKIE];
+      request.user = token ? auth.userForToken(token) : null;
+    });
+  }
 
-  app.decorate("requireAuth", async (request, reply) => {
-    if (request.user) return;
-    return reply.code(401).header("cache-control", "no-store").send({ error: "unauthorized", message: "Sign in required." });
-  });
+  if (!hosted) {
+    app.decorate("requireAuth", async (request, reply) => {
+      if (request.user) return;
+      return reply.code(401).header("cache-control", "no-store").send({ error: "unauthorized", message: "Sign in required." });
+    });
+  }
 
   // Minimal hardening headers. A Content-Security-Policy is deliberately left
   // out for now: the prototype uses inline styles and Google Fonts.
@@ -117,9 +127,15 @@ export async function buildApp(config, { db: providedDb, ingestor: providedInges
 
   // --- API -----------------------------------------------------------------
 
-  await app.register(authRoutes, { auth });
-  await app.register(configRoutes, { store, signals });
-  await app.register(signalRoutes, { ingestor, store, signals, generateOptions: { relevantMaxAgeHours: config.relevantMaxAgeHours, ...generateOptions } });
+  const runOptions = { relevantMaxAgeHours: config.relevantMaxAgeHours, ...generateOptions };
+  if (hosted) {
+    // Only the account-free routes exist here: nothing to sign in to, nothing stored per person.
+    await app.register(hostedRoutes, { ingestor, generateOptions: runOptions });
+  } else {
+    await app.register(authRoutes, { auth });
+    await app.register(configRoutes, { store, signals });
+    await app.register(signalRoutes, { ingestor, store, signals, generateOptions: runOptions });
+  }
 
   app.get("/api/health", async (request, reply) => {
     let database = "ok";
@@ -137,6 +153,7 @@ export async function buildApp(config, { db: providedDb, ingestor: providedInges
       migrations,
       uptimeSeconds: Math.round(process.uptime()),
       env: config.env,
+      mode: config.mode,
     };
   });
 
