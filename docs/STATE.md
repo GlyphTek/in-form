@@ -265,3 +265,10 @@ Fly.io (files exist in Dockerfile, fly.toml, deploy.yml, never run). Steps: 1 in
 - Needs a free GitHub account to submit. If that is too high a bar for real users, add an email address or a form later.
 - Not verified: how the forms render on GitHub (they render only once pushed to main).
 - Next: the "new version available" notice for Windows copies, then v0.3.0 (version bump, notes, tag).
+
+## "New version available" notice (update-notice branch)
+
+- Personal Windows copies (auth off, local mode) ask GitHub once a day for the latest release (`GET /api/update`, server/routes/update.js) and the first screen shows "A newer version of IN-FORM is available (vX.Y.Z)" with a link to the release page and a "Not now" that hides that version. The request carries nothing about the person. Unreachable or malformed answers show nothing. Not registered in hosted mode, in password mode, or with `INFORM_UPDATE_CHECK=off`.
+- Only a `vX.Y.Z` tag and a github.com/GlyphTek/in-form/releases/ link are believed (checked on the server and again in the page). Page and README privacy wording updated to say so.
+- Verified with a pretend GitHub (newer, same, unreachable) in Chromium and unit tests; the sandbox cannot reach api.github.com, so the real call is unverified until a release newer than the running copy exists.
+- Not verified: that running the new installer over an old install keeps everything as expected (setup and history live in %APPDATA%\IN-FORM, separate from the program); the install test in CI only covers a fresh install.

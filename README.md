@@ -85,9 +85,13 @@ on your own computer only; see the developer guide for password mode.
 
 - Your setup and history are stored on your computer only: in `%APPDATA%\IN-FORM` for the
   Windows download, or `data/` when run from source. There are no accounts and no analytics.
-- The app contacts only the news sources you chose: Google News searches for topics
+- The app contacts the news sources you chose: Google News searches for topics
   and keywords, plus any websites or feeds you added. It sends them from your
   computer. The page fonts are bundled, so nothing is requested from other sites.
+- Once a day, your own copy also asks GitHub whether a newer release exists, so it can
+  tell you. That request carries nothing about you or your setup; GitHub sees an ordinary
+  request from your internet address. To turn it off, set `INFORM_UPDATE_CHECK=off`.
+  The phone version does not do this.
 - It answers only your own computer (`127.0.0.1`), so other devices on your network
   cannot reach it.
 - To move or back up your setup, use **Back up or move your setup** on the setup

@@ -1628,7 +1628,45 @@ if (installDismissButton) {
 
 // Learn early whether this is the phone version, so the offer shows on the first screen.
 // A copy that has used the hosted server before knows at once, even if it is asleep.
-(knownHosted() ? enterDeviceMode() : detectDeviceMode()).then(() => { renderInstallHint(); updateFeedbackLink(); }, () => {});
+(knownHosted() ? enterDeviceMode() : detectDeviceMode()).then(() => { renderInstallHint(); updateFeedbackLink(); return checkForUpdate(); }, () => {});
+
+/* ===========================
+   NEWER VERSION NOTICE (a personal copy on your own computer only)
+   The server asks GitHub at most once a day whether a newer release exists and tells
+   us here. If it cannot find out, nothing is shown. "Not now" hides that version.
+=========================== */
+const UPDATE_DISMISSED = "inform_update_dismissed";
+
+async function checkForUpdate() {
+    if (deviceMode) return;
+    const box = document.getElementById("update-note");
+    const text = document.getElementById("update-text");
+    const link = document.getElementById("update-link");
+    if (!box || !text || !link) return;
+    try {
+        const response = await apiFetch("/api/update", { headers: { accept: "application/json" } }, 9000);
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!data || data.newer !== true) return;
+        if (!/^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(String(data.latest))) return;
+        if (!String(data.url).startsWith("https://github.com/GlyphTek/in-form/releases/")) return;
+        let dismissed = "";
+        try { dismissed = localStorage.getItem(UPDATE_DISMISSED) || ""; } catch { /* optional */ }
+        if (dismissed === data.latest) return;
+        text.textContent = `A newer version of IN-FORM is available (v${data.latest}). Your setup and history are kept separately from the program.`;
+        link.href = data.url;
+        box.hidden = false;
+        const dismiss = document.getElementById("update-dismiss");
+        if (dismiss) {
+            dismiss.onclick = () => {
+                try { localStorage.setItem(UPDATE_DISMISSED, data.latest); } catch { /* optional */ }
+                box.hidden = true;
+            };
+        }
+    } catch {
+        /* could not find out: say nothing */
+    }
+}
 
 /* ===========================
    HOME-SCREEN INSTALL / OFFLINE START

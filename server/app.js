@@ -17,10 +17,11 @@ import authRoutes from "./routes/auth.js";
 import configRoutes from "./routes/config.js";
 import signalRoutes from "./routes/signals.js";
 import hostedRoutes from "./routes/hosted.js";
+import updateRoutes from "./routes/update.js";
 
 const STATE_CHANGING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-export async function buildApp(config, { db: providedDb, ingestor: providedIngestor, generateOptions, logStream } = {}) {
+export async function buildApp(config, { db: providedDb, ingestor: providedIngestor, generateOptions, logStream, fetchLatest } = {}) {
   // Hosted mode is the public phone website: no accounts, nothing stored about anyone.
   const hosted = config.mode === "hosted";
   const app = Fastify({
@@ -127,6 +128,12 @@ export async function buildApp(config, { db: providedDb, ingestor: providedInges
     }),
   });
 
+  // The version people are running, so a bug report can name it.
+  let version = "unknown";
+  try {
+    version = JSON.parse(readFileSync(path.join(config.rootDir, "package.json"), "utf8")).version || "unknown";
+  } catch { /* the version is a convenience */ }
+
   // --- API -----------------------------------------------------------------
 
   const runOptions = { relevantMaxAgeHours: config.relevantMaxAgeHours, ...generateOptions };
@@ -137,13 +144,11 @@ export async function buildApp(config, { db: providedDb, ingestor: providedInges
     await app.register(authRoutes, { auth });
     await app.register(configRoutes, { store, signals });
     await app.register(signalRoutes, { ingestor, store, signals, generateOptions: runOptions });
+    // Only for one person's own copy: it has nothing to say on a shared, password-protected site.
+    if (config.updateCheck !== false && config.auth.mode === "off") {
+      await app.register(updateRoutes, { current: version, ...(fetchLatest ? { fetchLatest } : {}) });
+    }
   }
-
-  // The version people are running, so a bug report can name it.
-  let version = "unknown";
-  try {
-    version = JSON.parse(readFileSync(path.join(config.rootDir, "package.json"), "utf8")).version || "unknown";
-  } catch { /* the version is a convenience */ }
 
   app.get("/api/health", async (request, reply) => {
     let database = "ok";

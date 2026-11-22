@@ -57,6 +57,8 @@ export function loadConfig(env = process.env) {
       .map((s) => s.trim().replace(/\/$/, ""))
       .filter(Boolean),
     rootDir,
+    // Once a day, ask GitHub whether a newer IN-FORM exists (personal copies only).
+    updateCheck: env.INFORM_UPDATE_CHECK !== "off",
     env: env.NODE_ENV || "development",
     port: readPort(env.PORT, 3000),
     // Bind to loopback by default; set HOST=0.0.0.0 deliberately when deploying.
