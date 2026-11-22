@@ -1,5 +1,33 @@
 # Deploying IN-FORM
 
+There are two ways to run IN-FORM on the internet. The first is the free phone version; the second is a private, password-protected copy for one person.
+
+## The free phone version (Render)
+
+This is the public, no-account version: your setup and history stay on your phone, and the server looks up the news for your topics when you press, keeping nothing. It runs on Render's free plan using `render.yaml` and the `Dockerfile`.
+
+**What free means here** (Render's terms at https://render.com/docs/free, checked when this was written; they can change):
+
+- No card is mentioned for creating a free web service. A payment method only matters for going over the bandwidth or build limits.
+- It sleeps after 15 minutes without use and takes about a minute to wake. The first press after a quiet spell is slow, and IN-FORM says "Waking the server up" while it waits. Pressing after that is quick.
+- 750 free hours a month is enough for one service. If the free hours or bandwidth run out, the service is suspended until next month.
+- Render calls free instances not for production. That suits a portfolio project, not something people rely on.
+- The disk is wiped on restart. That is fine: the hosted version keeps nothing that matters.
+
+**Setup (about 10 minutes, nothing here has been run yet, so expect to fix small things on the first deploy):**
+
+1. Create a free account at https://render.com and sign in with GitHub.
+2. New, then Blueprint. Choose the `GlyphTek/in-form` repository. Render reads `render.yaml`, shows one web service called `in-form` on the free plan, and asks you to confirm.
+3. Wait for the first build (a few minutes). When it says Live, open the address Render gives you (like `https://in-form-xxxx.onrender.com`).
+4. Check `https://YOUR-ADDRESS/api/health`. It should show `"mode":"hosted"`.
+5. Open the address on your phone. Use Add to Home Screen (iPhone: Share, then Add to Home Screen; Android: the browser menu, then Install app). Installing needs the https address, which Render provides.
+
+With `autoDeploy: true`, pushing to `main` redeploys it. The GitHub deploy workflow for Fly is separate and only runs by hand.
+
+## A private copy for one person (Fly.io, optional, needs a payment method)
+
+Fly.io no longer has a free plan, only a short trial, so this is only for a password-protected copy that keeps one person's setup in a database. The files below are ready but have never been run end to end.
+
 ## Why not GitHub Pages
 
 GitHub Pages only serves static files. IN-FORM now has a server (feed fetching,

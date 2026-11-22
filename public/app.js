@@ -550,17 +550,26 @@ function browserStorage() {
     try { return window.localStorage; } catch { return null; }
 }
 
+const HOSTED_FLAG = "inform_hosted_origin";
+
+function knownHosted() {
+    try { return localStorage.getItem(HOSTED_FLAG) === "1"; } catch { return false; }
+}
+
+async function enterDeviceMode() {
+    const { createDeviceStore } = await import("./device-store.js");
+    deviceStore = createDeviceStore({ storage: browserStorage() });
+    deviceMode = true;
+    try { localStorage.setItem(HOSTED_FLAG, "1"); } catch { /* optional */ }
+}
+
 async function detectDeviceMode() {
     if (deviceMode) return true;
     try {
         const response = await apiFetch("/api/health", { headers: { accept: "application/json" } });
         if (!response.ok) return false;
         const data = await response.json();
-        if (data && data.mode === "hosted") {
-            const { createDeviceStore } = await import("./device-store.js");
-            deviceStore = createDeviceStore({ storage: browserStorage() });
-            deviceMode = true;
-        }
+        if (data && data.mode === "hosted") await enterDeviceMode();
     } catch {
         /* not the hosted server: the normal app */
     }
@@ -609,6 +618,15 @@ function jsonRequest(method, body) {
 }
 
 async function refreshAuth() {
+    // This address has been the hosted version before. A free host may be asleep, and
+    // waiting on it here would only delay the page, so go straight to the phone setup.
+    if (!deviceMode && knownHosted()) {
+        try {
+            await enterDeviceMode();
+            authState = { available: false, authRequired: false, authenticated: false };
+            return authState;
+        } catch { /* fall through to the normal check */ }
+    }
     try {
         const response = await apiFetch("/api/auth/me", { headers: { accept: "application/json" } });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -1093,9 +1111,19 @@ function loadConfig() {
     return { sources: [], region: null };
 }
 
+// A free host goes to sleep when nobody uses it and takes up to about a minute to wake.
+// In the phone version the first press can therefore be slow, so it waits, says why,
+// and tries again if the host answers "not ready" while it starts.
+const WAKE_NOTICE = "Waking the server up. The first press after a quiet spell can take about a minute.";
+const WAKE_STATUSES = [502, 503, 504];
+
 async function requestSignals(config) {
+    const patient = deviceMode;
+    const budgetMs = patient ? 100000 : 45000;
+    const started = Date.now();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 45000);
+    const timer = setTimeout(() => controller.abort(), budgetMs);
+    const noticeTimer = patient ? setTimeout(() => { tifaSubtitle.textContent = WAKE_NOTICE; }, 6000) : null;
 
     try {
         let url = "/api/signals/generate";
@@ -1106,12 +1134,29 @@ async function requestSignals(config) {
             payload = { topics: topicIds(config.sources), ...deviceStore.snapshot() };
             if (config.region) payload.region = config.region;
         }
-        const response = await fetch(url, {
+        const send = () => fetch(url, {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(payload),
             signal: controller.signal
         });
+
+        let response;
+        for (let attempt = 0; ; attempt++) {
+            let failure = null;
+            try {
+                response = await send();
+                if (!(patient && WAKE_STATUSES.includes(response.status))) break;
+            } catch (err) {
+                if (!patient || (err && err.name === "AbortError")) throw err;
+                failure = err;
+            }
+            if (attempt >= 8 || Date.now() - started > budgetMs - 12000) {
+                if (failure) throw failure;
+                break;
+            }
+            await new Promise(resolve => setTimeout(resolve, 8000));
+        }
 
         if (response.status === 401) {
             throw new SignalsError("unauthorized", "Your session expired. Sign in again.");
@@ -1143,6 +1188,7 @@ async function requestSignals(config) {
         throw new SignalsError("unreachable", "Could not reach the IN-FORM server.");
     } finally {
         clearTimeout(timer);
+        if (noticeTimer) clearTimeout(noticeTimer);
     }
 }
 

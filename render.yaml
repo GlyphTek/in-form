@@ -1,0 +1,30 @@
+# Render configuration for the free phone version. See docs/DEPLOY.md.
+#
+# Hosted mode: no accounts, no passwords and nothing stored about anyone. The phone
+# keeps its own setup and history, and each press sends what the server needs.
+# The free plan sleeps after 15 minutes of no use and takes about a minute to wake.
+
+services:
+  - type: web
+    name: in-form
+    runtime: docker
+    plan: free
+    region: singapore          # closest Render region to New Zealand
+    healthCheckPath: /api/health
+    autoDeploy: true           # redeploys when main changes
+    envVars:
+      - key: INFORM_MODE
+        value: hosted
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      # Render's proxy sits in front: real visitor addresses for the rate limit.
+      - key: TRUST_PROXY
+        value: "true"
+      # The free plan's disk is wiped on restart; the hosted version keeps nothing
+      # that matters, only a short-lived cache of fetched news.
+      - key: DATABASE_PATH
+        value: /tmp/inform.db
+      - key: LOG_LEVEL
+        value: warn
