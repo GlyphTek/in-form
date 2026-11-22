@@ -245,3 +245,8 @@ Fly.io (files exist in Dockerfile, fly.toml, deploy.yml, never run). Steps: 1 in
 
 - Live at https://in-form.onrender.com (free Render plan, hosted mode). Builder-tested on a real phone: installs from the browser, topics survive a close, seen items are skipped on later presses, layout fine. Not yet confirmed on a phone: Useful/Dismiss/open links, and the idle "Waking the server up" path.
 - The download page now has OPEN ON YOUR PHONE, an INSTALL (PHONE) section, and honest wording in privacy and known limits (the server sees the request while answering; topics only; free host can be slow to wake or paused).
+
+## Install offer in the phone app (install-hint branch)
+
+- On the first screen of the phone version: Android Chrome gets an INSTALL IN-FORM button (uses the browser's own install prompt, `beforeinstallprompt`); iPhone gets "tap Share, then Add to Home Screen" because Apple gives pages no way to start the install. Hidden once installed (standalone), after the install event, and after "Not now" (remembered). Never shown on the desktop app or a plain desktop browser.
+- Verified in Chromium with a simulated install prompt and an iPhone user agent; real Android Chrome already offers its own prompt (the builder saw it). Not verified: real iPhone.

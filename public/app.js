@@ -874,6 +874,7 @@ if (importBtn && importFile) {
 
 async function prepareAfterLanding() {
     await refreshAuth();
+    renderInstallHint();
     if (accountMode() === "login") return "login";
     return preloadSetup();
 }
@@ -1532,6 +1533,75 @@ if (returnToSetupBtn) {
         ]).then(([next]) => showScreen(next));
     });
 }
+
+/* ===========================
+   OFFER TO INSTALL (phone version only)
+   Android Chrome lets a page ask for the install prompt; iPhone does not, so there
+   the page can only say how. Hidden once installed, and after "Not now".
+=========================== */
+let installPrompt = null;
+const INSTALL_DISMISSED = "inform_install_dismissed";
+
+function isInstalled() {
+    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
+}
+function isIphone() {
+    return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+function installDismissed() {
+    try { return localStorage.getItem(INSTALL_DISMISSED) === "1"; } catch { return false; }
+}
+
+function renderInstallHint() {
+    const box = document.getElementById("install-hint");
+    const button = document.getElementById("install-btn");
+    const text = document.getElementById("install-text");
+    if (!box || !button || !text) return;
+    const canPrompt = Boolean(installPrompt);
+    const iphoneSteps = isIphone();
+    const show = deviceMode && !isInstalled() && !installDismissed() && (canPrompt || iphoneSteps);
+    box.hidden = !show;
+    if (!show) return;
+    button.hidden = !canPrompt;
+    text.textContent = canPrompt
+        ? "Put IN-FORM on your home screen to open it like an app."
+        : "To put IN-FORM on your home screen: tap the Share button, then Add to Home Screen.";
+}
+
+window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    installPrompt = event;
+    renderInstallHint();
+});
+window.addEventListener("appinstalled", () => {
+    installPrompt = null;
+    renderInstallHint();
+});
+
+const installButton = document.getElementById("install-btn");
+if (installButton) {
+    installButton.addEventListener("click", async () => {
+        if (!installPrompt) return;
+        const offer = installPrompt;
+        installPrompt = null;
+        try {
+            await offer.prompt();
+            await offer.userChoice;
+        } catch { /* the browser said no: nothing to do */ }
+        renderInstallHint();
+    });
+}
+const installDismissButton = document.getElementById("install-dismiss");
+if (installDismissButton) {
+    installDismissButton.addEventListener("click", () => {
+        try { localStorage.setItem(INSTALL_DISMISSED, "1"); } catch { /* optional */ }
+        renderInstallHint();
+    });
+}
+
+// Learn early whether this is the phone version, so the offer shows on the first screen.
+// A copy that has used the hosted server before knows at once, even if it is asleep.
+(knownHosted() ? enterDeviceMode() : detectDeviceMode()).then(renderInstallHint, () => {});
 
 /* ===========================
    HOME-SCREEN INSTALL / OFFLINE START
