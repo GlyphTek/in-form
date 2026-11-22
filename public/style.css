@@ -1292,3 +1292,17 @@ body {
     text-decoration: underline;
     cursor: pointer;
 }
+
+.feedback-line {
+    margin: 14px 0 0;
+    font-size: 0.8rem;
+    text-align: center;
+}
+.feedback-line a {
+    display: inline-block;
+    padding: 12px 8px;
+    color: var(--secondary);
+    opacity: 0.85;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}

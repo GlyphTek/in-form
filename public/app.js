@@ -551,6 +551,15 @@ function browserStorage() {
 }
 
 const HOSTED_FLAG = "inform_hosted_origin";
+let appVersion = "";
+
+// The feedback form opens with the version already filled in, when the server told us.
+function updateFeedbackLink() {
+    const link = document.getElementById("feedback-link");
+    if (!link) return;
+    const base = "https://github.com/GlyphTek/in-form/issues/new?template=feedback.yml";
+    link.href = appVersion ? `${base}&version=${encodeURIComponent(appVersion)}` : base;
+}
 
 function knownHosted() {
     try { return localStorage.getItem(HOSTED_FLAG) === "1"; } catch { return false; }
@@ -569,6 +578,7 @@ async function detectDeviceMode() {
         const response = await apiFetch("/api/health", { headers: { accept: "application/json" } });
         if (!response.ok) return false;
         const data = await response.json();
+        if (data && typeof data.version === "string" && /^[\w.+-]{1,20}$/.test(data.version)) appVersion = data.version;
         if (data && data.mode === "hosted") await enterDeviceMode();
     } catch {
         /* not the hosted server: the normal app */
@@ -1618,7 +1628,7 @@ if (installDismissButton) {
 
 // Learn early whether this is the phone version, so the offer shows on the first screen.
 // A copy that has used the hosted server before knows at once, even if it is asleep.
-(knownHosted() ? enterDeviceMode() : detectDeviceMode()).then(renderInstallHint, () => {});
+(knownHosted() ? enterDeviceMode() : detectDeviceMode()).then(() => { renderInstallHint(); updateFeedbackLink(); }, () => {});
 
 /* ===========================
    HOME-SCREEN INSTALL / OFFLINE START

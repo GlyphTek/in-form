@@ -93,6 +93,13 @@ on your own computer only; see the developer guide for password mode.
 - To move or back up your setup, use **Back up or move your setup** on the setup
   screen. It saves your topics, sites and region to a small file, with no history in it.
 
+## Feedback
+
+Found something broken, confusing or missing, or have an idea? Open an issue:
+https://github.com/GlyphTek/in-form/issues/new/choose (a free GitHub account is needed;
+the page is public, so please leave out personal details). Inside the app, the
+"Send feedback" link opens the same form with your version filled in.
+
 ## Known limits
 
 - Built for $0: designed, built and deployed using free hosting and local tools, so expect

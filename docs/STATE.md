@@ -257,3 +257,11 @@ Fly.io (files exist in Dockerfile, fly.toml, deploy.yml, never run). Steps: 1 in
 - Known limits (page and README) now say it is built for $0 on free tiers, with occasional wake-up delays, no paid cloud AI, and rough edges.
 - iPhone 11 Pro report ("collapsed most of the cards"): not reproduced at 375x812 (layout fits, no sideways scroll). The four channel cards are an accordion by design: opening one closes the others. Waiting for the builder's screenshot to see whether that, or something else, is meant.
 - Day 2 of daily use: Render wake-up took seconds.
+
+## Feedback channel (feedback branch)
+
+- GitHub issue forms in `.github/ISSUE_TEMPLATE/`: "Something is not working" (bug.yml) and "Feedback or an idea" (feedback.yml), both with a version field and a where-did-it-happen dropdown, plus a note not to post personal details.
+- `/api/health` now includes `version` (from package.json). The app's "Send feedback" link (footer of the app screen) opens the feedback form with the version already filled in, using the form field id `version`. The link is only a link: the app never contacts GitHub by itself. The download page has a TELL ME WHAT YOU THINK section and a footer link; the README has a Feedback section.
+- Needs a free GitHub account to submit. If that is too high a bar for real users, add an email address or a form later.
+- Not verified: how the forms render on GitHub (they render only once pushed to main).
+- Next: the "new version available" notice for Windows copies, then v0.3.0 (version bump, notes, tag).
