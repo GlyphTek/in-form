@@ -240,3 +240,8 @@ Fly.io (files exist in Dockerfile, fly.toml, deploy.yml, never run). Steps: 1 in
 - A free Render service sleeps after 15 minutes and wakes in about a minute. The phone handles it: a copy that has talked to the hosted server before (flag `inform_hosted_origin`) opens its setup at once without waiting for the server; a press waits up to 100 s, shows "Waking the server up" after 6 s and retries when the host answers 502/503/504.
 - Verified: hosted server starts from the production-style environment and answers health/topics; a browser run with a hanging health check and two 503s before success. Not verified: a real Render deploy, Render's actual wake behaviour for fetch requests, a real phone.
 - Next: deploy by hand following docs/DEPLOY.md, then a real-phone test (step 5).
+
+## Phone version live (Render) and on the download page
+
+- Live at https://in-form.onrender.com (free Render plan, hosted mode). Builder-tested on a real phone: installs from the browser, topics survive a close, seen items are skipped on later presses, layout fine. Not yet confirmed on a phone: Useful/Dismiss/open links, and the idle "Waking the server up" path.
+- The download page now has OPEN ON YOUR PHONE, an INSTALL (PHONE) section, and honest wording in privacy and known limits (the server sees the request while answering; topics only; free host can be slow to wake or paused).

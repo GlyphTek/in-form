@@ -33,3 +33,13 @@ test("the deploy guide covers Render, says what is free and what is not", () => 
   assert.match(d, /sleeps after 15 minutes/i);
   assert.match(d, /about a minute/i);
 });
+
+test("the download page offers the phone version, with install steps and honest limits", () => {
+  const h = read("index.html");
+  assert.match(h, /href="https:\/\/in-form\.onrender\.com"/);
+  assert.match(h, /Add to Home Screen/);
+  assert.match(h, /about a minute/);
+  assert.match(h, /keeps nothing/);
+  assert.match(h, /built-in topics only/);
+  assert.doesNotMatch(h, /never leaves your phone/i, "the server does see the request, so never claim that");
+});
