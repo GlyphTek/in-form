@@ -69,6 +69,8 @@ test("the release workflow builds the installer on Windows, tests it, and checks
   assert.match(y, /sha256sum IN-FORM-Setup-\*\.exe in-form-\*\.zip/);
   assert.match(y, /needs: \[packages, installer\]/, "nothing is published unless the install test passed");
   assert.match(y, /--repo "\$\{GITHUB_REPOSITORY\}"/, "the publish job has no checkout");
+  assert.doesNotMatch(y.replace(/^\s*#.*$/gm, ""), /Start-Process[^\n]*-Wait/, "-Wait also waits for the background server and would hang the job");
+  assert.equal((y.match(/timeout-minutes:/g) || []).length, 3, "every job has a time limit so a hang cannot run for hours");
 });
 
 test("the download page's showcase only uses media that is in the repo and small enough to host", () => {
