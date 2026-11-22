@@ -233,3 +233,10 @@ Fly.io (files exist in Dockerfile, fly.toml, deploy.yml, never run). Steps: 1 in
 - Removing a topic in setup forgets what was shown from it, so adding it back starts fresh (same as the desktop app).
 - Verified in a phone-sized Chromium against an in-process hosted server (17 checks: no sign-in, history persists across reload, DONE reached, nothing per-person sent to the server) and all existing browser scripts still pass. Not yet tried on a real phone or against live Google News.
 - Next: step 4, hosting on Fly.io (fly.toml and docs/DEPLOY.md need INFORM_MODE=hosted, TRUST_PROXY=true, no password).
+
+## Phone, step 4: hosting on Render's free plan (render-hosting branch)
+
+- Fly.io has no free plan any more (short trial only), so the phone version targets Render's free tier. `render.yaml` sets hosted mode, no password, TRUST_PROXY, a disposable database in /tmp. The old Fly files stay for a private password copy and are marked as needing a payment method.
+- A free Render service sleeps after 15 minutes and wakes in about a minute. The phone handles it: a copy that has talked to the hosted server before (flag `inform_hosted_origin`) opens its setup at once without waiting for the server; a press waits up to 100 s, shows "Waking the server up" after 6 s and retries when the host answers 502/503/504.
+- Verified: hosted server starts from the production-style environment and answers health/topics; a browser run with a hanging health check and two 503s before success. Not verified: a real Render deploy, Render's actual wake behaviour for fetch requests, a real phone.
+- Next: deploy by hand following docs/DEPLOY.md, then a real-phone test (step 5).
