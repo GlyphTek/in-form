@@ -1306,3 +1306,12 @@ body {
     text-decoration: underline;
     text-underline-offset: 3px;
 }
+
+.update-link {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 12px 8px;
+    color: var(--secondary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
