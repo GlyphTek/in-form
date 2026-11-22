@@ -87,3 +87,14 @@ test("the page shows the notice only for a well-formed answer, and the privacy w
   assert.match(read("index.html"), /INFORM_UPDATE_CHECK=off/);
   assert.match(read("index.html"), /Windows app only/);
 });
+
+test("the version being released has notes in CHANGELOG.md, and the release workflow publishes them", () => {
+  const { version } = JSON.parse(read("package.json"));
+  const log = read("CHANGELOG.md");
+  assert.match(log, new RegExp(`^## ${version.replace(/\./g, "\\.")}$`, "m"), "tagging without notes would publish an empty release");
+  const wf = read(".github/workflows/release.yml");
+  assert.match(wf, /--notes-file notes\.md/);
+  assert.match(wf, /CHANGELOG\.md/);
+  assert.match(wf, /actions\/checkout@v4/);
+  assert.equal(JSON.parse(read("package-lock.json")).version, version, "the lock file agrees");
+});
