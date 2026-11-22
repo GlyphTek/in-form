@@ -250,3 +250,10 @@ Fly.io (files exist in Dockerfile, fly.toml, deploy.yml, never run). Steps: 1 in
 
 - On the first screen of the phone version: Android Chrome gets an INSTALL IN-FORM button (uses the browser's own install prompt, `beforeinstallprompt`); iPhone gets "tap Share, then Add to Home Screen" because Apple gives pages no way to start the install. Hidden once installed (standalone), after the install event, and after "Not now" (remembered). Never shown on the desktop app or a plain desktop browser.
 - Verified in Chromium with a simulated install prompt and an iPhone user agent; real Android Chrome already offers its own prompt (the builder saw it). Not verified: real iPhone.
+
+## Readability: headlines, source line, known limits (readability branch)
+
+- Headlines are larger (0.98rem, bold) and each item has a separate source line (uppercase, underlined, the tap target for the article). For Google News links the page shows the publisher, taken from the " - Publisher" ending of the headline (the link itself only says news.google.com); otherwise the link's host; display only, the stored title and learning are unchanged. If a Google headline has no publisher ending it says "Google News".
+- Known limits (page and README) now say it is built for $0 on free tiers, with occasional wake-up delays, no paid cloud AI, and rough edges.
+- iPhone 11 Pro report ("collapsed most of the cards"): not reproduced at 375x812 (layout fits, no sideways scroll). The four channel cards are an accordion by design: opening one closes the others. Waiting for the builder's screenshot to see whether that, or something else, is meant.
+- Day 2 of daily use: Render wake-up took seconds.

@@ -95,6 +95,9 @@ on your own computer only; see the developer guide for password mode.
 
 ## Known limits
 
+- Built for $0: designed, built and deployed using free hosting and local tools, so expect
+  occasional free-tier wake-up delays (very little in recent tests), no paid cloud AI or
+  background services, and a few rough edges where free tiers draw the line.
 - English-language sources only for now.
 - Windows download only for now; the app is unsigned.
 - Topics use Google News' public RSS search. It is not an official interface and could
