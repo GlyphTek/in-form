@@ -1084,6 +1084,29 @@ button[type="button"]:hover{
     font-size:.7rem;
 }
 
+/* Headline and who it is from: easier to read, and the source is plain to see. */
+.content p.signal-title{
+    margin:0 0 4px;
+    font-size:.98rem;
+    font-weight:700;
+    line-height:1.45;
+    color:var(--text);
+}
+
+.content p.signal-source{
+    margin:0 0 6px;
+    font-size:.78rem;
+    line-height:1.4;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+}
+
+.content p.signal-source a{
+    color:var(--secondary);
+    text-decoration:underline;
+    text-underline-offset:3px;
+}
+
 .content p.signal-why{
     margin-top:2px;
     font-size:.65rem;
@@ -1194,7 +1217,7 @@ button[type="button"]:hover{
 
     .signal-btn { padding: 4px 16px; }
 
-    /* The link under each item is the main thing to tap: widen its hit area without moving anything. */
+    /* The source link under each headline is the main thing to tap: widen its hit area without moving anything. */
     a[data-signal-link] {
         display: inline-block;
         padding: 13px 0;

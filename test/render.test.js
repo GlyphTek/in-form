@@ -55,3 +55,23 @@ test("the phone version offers to install: a button where the browser allows it,
   assert.match(h, /id="install-hint"/);
   assert.match(h, /id="install-dismiss"/);
 });
+
+test("headlines are easier to read and show who the source is, using the publisher for Google News links", () => {
+  const a = code("public/app.js");
+  assert.match(a, /function splitHeadline/);
+  assert.match(a, /lastIndexOf\(" - "\)/, "Google News headlines end with ' - Publisher'");
+  assert.match(a, /class="signal-title"/);
+  assert.match(a, /class="signal-source"/);
+  const c = code("public/style.css");
+  assert.match(c, /p\.signal-title\{[^}]*font-size:\.98rem/);
+  assert.match(c, /p\.signal-source\{[^}]*text-transform:uppercase/);
+});
+
+test("the known limits say plainly that it is built for $0 on free tiers", () => {
+  for (const f of ["index.html", "README.md"]) {
+    const t = read(f);
+    assert.match(t, /Built for \$0/);
+    assert.match(t, /free-tier wake-up delays/);
+    assert.match(t, /no paid cloud AI/);
+  }
+});

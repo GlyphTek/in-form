@@ -1045,12 +1045,29 @@ const IDLE_SUBTITLE = "Current Signals → Tap to generate";
 // "Useful" can toggle without asking the server what it looked like.
 const signalsOnScreen = new Map();
 
+// Google News links all point at news.google.com, which tells you nothing, but its
+// headlines end with " - Publisher". Show the publisher as the source and keep the
+// headline clean. Only the display changes; the stored title is untouched.
+function splitHeadline(signal) {
+    const title = String(signal.title || "");
+    const host = String(signal.linkText || "");
+    if (/(^|\.)google\.com$/i.test(host)) {
+        const i = title.lastIndexOf(" - ");
+        const headline = i > 0 ? title.slice(0, i).trim() : "";
+        const publisher = i > 0 ? title.slice(i + 3).trim() : "";
+        if (headline && publisher && publisher.length <= 60) return { headline, source: publisher };
+        return { headline: title, source: "Google News" };
+    }
+    return { headline: title, source: host || "Open link" };
+}
+
 function renderSignalHtml(signal) {
     signalsOnScreen.set(signal.id, signal);
+    const { headline, source } = splitHeadline(signal);
     return `<div class="signal-item" data-signal-id="${Number(signal.id)}">` +
-        `<p><strong>${escapeHtml(signal.title)}</strong><br>` +
-        `<a href="${escapeHtml(safeUrl(signal.link))}" target="_blank" rel="noopener noreferrer" ` +
-        `data-signal-link style="color: var(--secondary);">${escapeHtml(signal.linkText)}</a></p>` +
+        `<p class="signal-title">${escapeHtml(headline)}</p>` +
+        `<p class="signal-source"><a href="${escapeHtml(safeUrl(signal.link))}" target="_blank" rel="noopener noreferrer" ` +
+        `data-signal-link aria-label="Open the article from ${escapeHtml(source)}">${escapeHtml(source)} ↗</a></p>` +
         (signal.reason ? `<p class="signal-why">Why: ${escapeHtml(signal.reason)}</p>` : "") +
         `<div class="signal-actions">` +
         `<button type="button" class="signal-btn" data-action="useful" aria-pressed="${signal.useful ? "true" : "false"}">` +
