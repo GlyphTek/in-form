@@ -223,3 +223,13 @@ Fly.io (files exist in Dockerfile, fly.toml, deploy.yml, never run). Steps: 1 in
   limits, rate limit, request contents absent from logs. `buildApp` takes an optional `logStream` for that.
 - fly.toml and docs/DEPLOY.md still describe the password-protected deployment; step 4 updates them
   (INFORM_MODE=hosted, TRUST_PROXY=true, no INFORM_PASSWORD).
+
+## Phone, step 3: setup and history on the phone (phone-client branch)
+
+- `public/device-store.js` keeps seen items, dismissals, opens and Useful marks in the browser's own storage (`inform_device_v1`), mirroring the server's signal store (a parity test checks both agree). If storage is blocked or full it carries on in memory and the page says history will not survive.
+- `public/app.js` detects "device mode" when there is no account system and `/api/health` reports `mode: "hosted"`. In that mode it sends topics, region and the device's history to `POST /api/v1/generate` on each press, and never calls `/api/config` or `/api/signals/*`.
+- Hosted version is topics only: the custom sites/feeds drawer is hidden, and imported setup files are filtered to topics (a note says how many were dropped).
+- A note on the setup screen says: setup and history stay on this phone; the server looks up the news for your topics and keeps nothing.
+- Removing a topic in setup forgets what was shown from it, so adding it back starts fresh (same as the desktop app).
+- Verified in a phone-sized Chromium against an in-process hosted server (17 checks: no sign-in, history persists across reload, DONE reached, nothing per-person sent to the server) and all existing browser scripts still pass. Not yet tried on a real phone or against live Google News.
+- Next: step 4, hosting on Fly.io (fly.toml and docs/DEPLOY.md need INFORM_MODE=hosted, TRUST_PROXY=true, no password).
