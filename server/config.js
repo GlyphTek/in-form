@@ -41,7 +41,14 @@ function readAuth(env) {
 }
 
 export function loadConfig(env = process.env) {
+  const mode = env.INFORM_MODE === "hosted" ? "hosted" : "local";
   return {
+    // local   one person on their own computer (or a password-protected copy): setup and
+    //         history live in this server's database.
+    // hosted  a public website for phones. It has NO accounts and stores nothing about
+    //         anyone: the phone sends what the server needs with each request (see
+    //         routes/hosted.js), and only the built-in topics can be fetched.
+    mode,
     auth: readAuth(env),
     // Extra origins allowed to make API writes, e.g. https://inform.example.com.
     // Only needed if a proxy rewrites the Host header; same-host requests always pass.
@@ -65,7 +72,8 @@ export function loadConfig(env = process.env) {
     rateLimitPerMinute: Number(env.RATE_LIMIT_PER_MINUTE) || 120,
     // Tight (12) when it may be a shared website with a password; generous (120) when
     // auth is off, which only ever means one person on their own computer.
-    generateRateLimitPerMinute: Number(env.GENERATE_RATE_LIMIT_PER_MINUTE) || (readAuth(env).mode === "off" ? 120 : 12),
+    // Hosted: per visitor (needs TRUST_PROXY=true behind Fly.io so it is the real address).
+    generateRateLimitPerMinute: Number(env.GENERATE_RATE_LIMIT_PER_MINUTE) || (mode === "hosted" ? 30 : readAuth(env).mode === "off" ? 120 : 12),
     databasePath: path.resolve(rootDir, env.DATABASE_PATH || "data/inform.db"),
     publicDir: path.join(rootDir, "public"),
     migrationsDir: path.join(rootDir, "server", "migrations"),

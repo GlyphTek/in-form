@@ -21,6 +21,14 @@ export const regionSchema = {
   },
 };
 
+/** The topic chips and regions offered on the setup screen. Fixed lists: nothing about any user. */
+export function topicsPayload() {
+  return {
+    topics: TOPICS.map(({ id, label, local }) => ({ id, label, local: Boolean(local), source: `topic:${id}` })),
+    regions: REGIONS.map(({ id, label, editions }) => ({ id, label, hasEditions: editions.length > 0 })),
+  };
+}
+
 const putSchema = {
   type: "object",
   required: ["sources"],
@@ -47,10 +55,7 @@ export default async function configRoutes(app, { store, signals }) {
   // The topic chips offered on the setup screen.
   app.get("/api/topics", { preHandler: app.requireAuth }, async (request, reply) => {
     reply.header("cache-control", "no-store");
-    return {
-      topics: TOPICS.map(({ id, label, local }) => ({ id, label, local: Boolean(local), source: `topic:${id}` })),
-      regions: REGIONS.map(({ id, label, editions }) => ({ id, label, hasEditions: editions.length > 0 })),
-    };
+    return topicsPayload();
   });
 
   app.put("/api/config", { schema: { body: putSchema }, preHandler: app.requireAuth }, async (request, reply) => {

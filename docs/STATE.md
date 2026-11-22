@@ -194,3 +194,32 @@ Fly.io (files exist in Dockerfile, fly.toml, deploy.yml, never run). Steps: 1 in
   Android Chrome install). HTTPS is required off localhost, which step 4 provides.
 - Tests: test/pwa.test.js (manifest, icons, head tags, worker rules, served types).
 
+
+## Phone, step 2: stateless generate (stateless branch)
+
+- `INFORM_MODE=hosted` (default `local`) makes the server the public phone website: no accounts, no
+  cookies, no sign-in. It does not create users/sessions/config/signals stores and registers none of the
+  per-person routes (`/api/config`, `/api/auth/*`, `/api/signals/*`, `/api/learning` all 404). It registers
+  only `GET /api/topics` (the fixed topic and region lists, public) and `POST /api/v1/generate`
+  (`server/routes/hosted.js`). The CSRF origin check still applies. Local mode has no stateless endpoint, so
+  a password-protected copy cannot be used without signing in.
+- `POST /api/v1/generate` body: `topics` (ids from the built-in list ONLY: no sites, feeds or keywords),
+  `region`, `seen` (item keys, max 3000), `dismissed` (max 1000), `feedback` (max 500 rows of
+  `{title, source, openCount?, openedAt?, usefulAt?, dismissedAt?}`). Unknown fields are refused. Body limit 1 MB
+  (the app-wide limit stays 64 KB). The answer is the desktop shape, with `key` per item instead of `id`,
+  and without the per-item `useful` flag (the phone tracks that). `generateSignals` already took `exclude`
+  and `affinity` as functions, so the ranking code did not change.
+- Per-visitor rate limit `GENERATE_RATE_LIMIT_PER_MINUTE` (30 when hosted); set `TRUST_PROXY=true` behind
+  Fly.io or it limits the proxy's address, not the visitor.
+- Privacy, stated exactly: request bodies are never logged; the route logs counts only; the generator gets a
+  silent logger. The server does see topics, region, seen keys and feedback while handling a request, and the
+  usual operational logs (time, address, path) exist. The ingestor's own warning when a news fetch fails
+  names the topic search that failed (a fixed public query, not tied to a visitor). Say "we don't store
+  it", never "it never leaves your phone".
+- The existing browser app calls the per-person routes, so hosted mode serves it but it will not work until
+  step 3 (a phone client that keeps its own state and calls /api/v1/generate).
+- Tests (test/hosted.test.js): parity with the signed-in run for the same history, nothing written to
+  users/sessions/sources/platforms/signals, topics-only, seen/dismissed/caught-up, feedback ranking, size
+  limits, rate limit, request contents absent from logs. `buildApp` takes an optional `logStream` for that.
+- fly.toml and docs/DEPLOY.md still describe the password-protected deployment; step 4 updates them
+  (INFORM_MODE=hosted, TRUST_PROXY=true, no INFORM_PASSWORD).
