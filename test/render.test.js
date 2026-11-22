@@ -43,3 +43,15 @@ test("the download page offers the phone version, with install steps and honest 
   assert.match(h, /built-in topics only/);
   assert.doesNotMatch(h, /never leaves your phone/i, "the server does see the request, so never claim that");
 });
+
+test("the phone version offers to install: a button where the browser allows it, steps where it does not", () => {
+  const a = code("public/app.js");
+  assert.match(a, /beforeinstallprompt/);
+  assert.match(a, /appinstalled/);
+  assert.match(a, /display-mode: standalone/);
+  assert.match(a, /Add to Home Screen/);
+  assert.match(a, /deviceMode && !isInstalled\(\)/, "only the phone version, and not once installed");
+  const h = read("public/index.html");
+  assert.match(h, /id="install-hint"/);
+  assert.match(h, /id="install-dismiss"/);
+});
