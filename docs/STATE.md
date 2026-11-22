@@ -155,8 +155,10 @@ Oracle Always Free VM could run the app unchanged.
 - release.yml is now three jobs: packages (Linux) -> installer (windows-latest: builds the launcher and
   setup, then silently installs, starts, queries /api/health, /, /api/topics, relaunches, stops and
   uninstalls) -> publish (checksums for setup exe and zips, release). Run "Run workflow" first to test
-  without publishing. NOT YET RUN: the launcher and the Inno script have never been compiled by me
-  (no Windows here); the CI is the first compile.
+  without publishing. VERIFIED: v0.2.0 was published by this workflow, and on the builder's Windows PC
+  the Start menu and desktop icons open IN-FORM with no black window and Stop IN-FORM works.
+  Lesson: Start-Process -Wait also waits for the background server and hung the CI test; the workflow
+  now waits for the launcher itself with a limit (and every job has a timeout).
 - Unsigned: SmartScreen still warns. Version bumped to 0.2.0 (file names come from package.json).
 
 ## Showcase on the download page
@@ -169,4 +171,26 @@ Oracle Always Free VM could run the app unchanged.
 - The recording is only 298 px wide (Clipchamp would not export larger), so text is a little soft. One caption still says "Select a new platform" (about 58 s); platforms no longer exist.
 - The install-explainer video does not exist yet. Link it from the Install section when it does (a
   plain link, not an embed).
+
+## Phone, step 1: installable shell (mobile-shell branch)
+
+Plan agreed with the builder (decisions): phone state lives ON THE PHONE (no accounts); the hosted version
+is TOPICS ONLY at first (no custom sites/feeds, so the server is not an open fetch proxy); hosting on
+Fly.io (files exist in Dockerfile, fly.toml, deploy.yml, never run). Steps: 1 installable shell (this),
+2 stateless generate (client sends topics, region, seen ids; server fetches, ranks, keeps nothing),
+3 on-device state, 4 hosting, 5 real-phone polish and testing, 6 one combined video.
+
+- `public/manifest.webmanifest`, `public/icons/*` (from `scripts/make-pwa-icons.py`; same four-square
+  design as the installer icon; maskable icon for Android; 180px apple-touch icon), head tags in index.html.
+- `public/sw.js`: network-first copy of the app's OWN files only, 4 s timeout then the saved copy. Never
+  touches /api/, other origins or non-GET, so it cannot show old news. Registered at the end of app.js.
+  It also registers on the Windows desktop app (localhost is a secure context): if the server is stopped,
+  an old tab or bookmark opens the saved shell, which then reports it cannot reach the server.
+- style.css: 44px minimum tap targets on small or touch screens only (chips, Useful/Dismiss, PRESS, Active
+  Sources, region menu, add-source row, the item link's hit area), safe-area padding, 100dvh. Measured in
+  Chromium at 390px: 0 controls under 44px, no sideways scroll.
+- Verified in Chromium: worker active, shell saved, no /api entries saved, Chrome reports no installability
+  errors, the app opens with the network off. NOT verified: a real phone (iOS Safari "Add to Home Screen",
+  Android Chrome install). HTTPS is required off localhost, which step 4 provides.
+- Tests: test/pwa.test.js (manifest, icons, head tags, worker rules, served types).
 

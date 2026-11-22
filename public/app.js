@@ -1396,3 +1396,15 @@ if (returnToSetupBtn) {
         ]).then(([next]) => showScreen(next));
     });
 }
+
+/* ===========================
+   HOME-SCREEN INSTALL / OFFLINE START
+   The service worker only keeps the app's own files so it can open with no
+   signal. It never keeps news or results (see sw.js). Failing to register is
+   harmless: the app works the same without it.
+=========================== */
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch(() => { /* optional */ });
+    });
+}
