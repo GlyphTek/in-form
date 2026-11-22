@@ -530,6 +530,66 @@ class AccountError extends Error {
     }
 }
 
+/* ==========================
+   PHONE VERSION (hosted server, no accounts)
+
+   When the server says it is hosted (GET /api/health), nothing about you is kept
+   there: setup is saved in this browser as before, and what you have seen, opened,
+   marked Useful or dismissed is kept by device-store.js. Each press sends the part
+   the server needs to POST /api/v1/generate. Only the built-in topics work there.
+========================== */
+
+let deviceMode = false;
+let deviceStore = null;
+let deviceDroppedSources = 0;
+
+const isTopicSource = (input) => /^topic:/i.test(String(input));
+const topicIds = (sources) => [...new Set(sources.filter(isTopicSource).map(input => String(input).slice(6).toLowerCase()))];
+
+function browserStorage() {
+    try { return window.localStorage; } catch { return null; }
+}
+
+async function detectDeviceMode() {
+    if (deviceMode) return true;
+    try {
+        const response = await apiFetch("/api/health", { headers: { accept: "application/json" } });
+        if (!response.ok) return false;
+        const data = await response.json();
+        if (data && data.mode === "hosted") {
+            const { createDeviceStore } = await import("./device-store.js");
+            deviceStore = createDeviceStore({ storage: browserStorage() });
+            deviceMode = true;
+        }
+    } catch {
+        /* not the hosted server: the normal app */
+    }
+    return deviceMode;
+}
+
+// Custom sites and feeds are not available in the phone version, so a saved setup
+// from elsewhere keeps its topics and says how many it had to leave out.
+function topicsOnlyForDevice(sources) {
+    if (!deviceMode) return sources;
+    const topics = sources.filter(isTopicSource);
+    deviceDroppedSources += sources.length - topics.length;
+    return topics;
+}
+
+function renderDeviceNote() {
+    const note = document.getElementById("device-note");
+    if (!note) return;
+    note.hidden = !deviceMode;
+    if (!deviceMode) return;
+    const parts = ["Your setup and history stay on this phone. When you press, IN-FORM's server looks up the news for your topics, and keeps nothing."];
+    if (deviceDroppedSources) {
+        parts.push(`Custom sites and feeds are not in the phone version yet, so ${deviceDroppedSources} of your sources ${deviceDroppedSources === 1 ? "was" : "were"} left out.`);
+    }
+    if (deviceStore && deviceStore.problem) parts.push(deviceStore.problem);
+    note.textContent = parts.join(" ");
+    if (customSources) customSources.style.display = "none";
+}
+
 async function apiFetch(path, options = {}, timeoutMs = 8000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -561,6 +621,7 @@ async function refreshAuth() {
         };
     } catch {
         authState = { available: false, authRequired: false, authenticated: false };
+        await detectDeviceMode();
     }
     return authState;
 }
@@ -679,11 +740,13 @@ async function preloadSetup() {
         }
     }
 
-    userSources = [...config.sources];
+    deviceDroppedSources = 0;
+    userSources = [...topicsOnlyForDevice(config.sources)];
     userRegion = normalizeRegion(config.region);
     renderSources();
     renderRegion();
     loadTopics();
+    renderDeviceNote();
     setSetupDirty(false);
     if (setupError) setupError.textContent = "";
     return "setup";
@@ -777,8 +840,10 @@ if (importBtn && importFile) {
         try {
             if (file.size > SETUP_MAX_FILE_BYTES) throw new Error("That file is too large to be a saved setup.");
             const loaded = parseSetupFile(await file.text());
-            userSources = loaded.sources;
+            deviceDroppedSources = 0;
+            userSources = topicsOnlyForDevice(loaded.sources);
             if (loaded.region) userRegion = loaded.region;
+            renderDeviceNote();
             setSetupDirty(true);
             renderSources();
             renderRegion();
@@ -879,7 +944,13 @@ if (startBtn) {
             }
         }
 
+        const previousSources = deviceMode ? loadConfig().sources : [];
         saveLocalConfig(userConfig);
+        if (deviceMode) {
+            // A topic taken out here and added back later starts fresh, as on the desktop.
+            const kept = new Set(userConfig.sources.map(input => String(input).toLowerCase()));
+            deviceStore.forgetSources(previousSources.filter(input => !kept.has(String(input).toLowerCase())));
+        }
         // Only a confirmed account save counts as saved; otherwise keep warning.
         if (!syncNote) setSetupDirty(false);
 
@@ -1027,10 +1098,18 @@ async function requestSignals(config) {
     const timer = setTimeout(() => controller.abort(), 45000);
 
     try {
-        const response = await fetch("/api/signals/generate", {
+        let url = "/api/signals/generate";
+        let payload = config.region ? { sources: config.sources, region: config.region } : { sources: config.sources };
+        if (deviceMode) {
+            // Everything the server needs to rank comes from this phone, per request.
+            url = "/api/v1/generate";
+            payload = { topics: topicIds(config.sources), ...deviceStore.snapshot() };
+            if (config.region) payload.region = config.region;
+        }
+        const response = await fetch(url, {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify(config.region ? { sources: config.sources, region: config.region } : { sources: config.sources }),
+            body: JSON.stringify(payload),
             signal: controller.signal
         });
 
@@ -1053,6 +1132,8 @@ async function requestSignals(config) {
         if (!data || typeof data !== "object" || !data.channels || !data.status) {
             throw new SignalsError("bad_response", "The server sent an unexpected response.");
         }
+        // The phone keeps its own record of what it has just been shown.
+        if (deviceMode) data.channels = deviceStore.recordShown(data.channels);
         return data;
     } catch (err) {
         if (err instanceof SignalsError) throw err;
@@ -1206,6 +1287,11 @@ function showSignals(config, result) {
 ========================== */
 
 async function saveSignalState(id, patch) {
+    if (deviceMode) {
+        const state = deviceStore.updateState(id, patch);
+        if (!state) throw new SignalsError("http", "This device no longer remembers that item.");
+        return state;
+    }
     const response = await apiFetch(`/api/signals/${id}/state`, jsonRequest("PUT", patch));
     if (response.status === 401) throw new SignalsError("unauthorized", "Your session expired. Sign in again.");
     if (!response.ok) throw new SignalsError("http", `The server responded with ${response.status}.`);
@@ -1213,6 +1299,10 @@ async function saveSignalState(id, patch) {
 }
 
 function recordOpen(id) {
+    if (deviceMode) {
+        deviceStore.recordOpen(id);
+        return;
+    }
     // Fire and forget: opening the link must never wait on, or fail because of, this.
     apiFetch(`/api/signals/${id}/open`, { method: "POST", keepalive: true }).catch(() => {});
 }

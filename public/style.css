@@ -1155,6 +1155,14 @@ button[type="button"]:hover{
     margin: 8px 0 0;
 }
 
+.device-note {
+    font-size: 0.78rem;
+    line-height: 1.5;
+    opacity: 0.75;
+    margin: 14px 0 0;
+    max-width: 34em;
+}
+
 .region-box label {
     display: block;
     margin-bottom: 10px;

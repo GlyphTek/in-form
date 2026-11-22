@@ -17,6 +17,7 @@ const SHELL = [
   "/",
   "/style.css",
   "/app.js",
+  "/device-store.js",
   "/manifest.webmanifest",
   "/fonts/michroma-latin-400-normal.woff2",
   "/fonts/michroma-latin-ext-400-normal.woff2",
