@@ -24,6 +24,7 @@ permissions:
 jobs:
   packages:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -57,6 +58,7 @@ jobs:
   installer:
     needs: packages
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -107,7 +109,22 @@ jobs:
 
           function Show-Log { if (Test-Path $log) { Write-Host '--- inform.log ---'; Get-Content $log } }
 
-          Start-Process -FilePath $setup -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=$dir" -Wait
+          # Start-Process -Wait would also wait for the server the launcher starts in the
+          # background, which never ends by itself. Wait for the program itself, with a limit.
+          function Run-Program([string]$exe, [string[]]$arguments, [int]$seconds = 90) {
+            $proc = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru
+            $null = $proc.Handle   # keeps the exit code readable afterwards
+            if (-not $proc.WaitForExit($seconds * 1000)) { Show-Log; throw "$exe did not finish within $seconds seconds" }
+            return $proc.ExitCode
+          }
+          function Wait-For([scriptblock]$condition, [string]$what, [int]$seconds = 60) {
+            for ($i = 0; $i -lt $seconds; $i++) { if (& $condition) { return }; Start-Sleep -Seconds 1 }
+            Show-Log; throw "timed out waiting for: $what"
+          }
+
+          $code = Run-Program $setup @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=$dir") 180
+          if ($code -ne 0) { throw "setup exit code $code" }
+          Wait-For { Test-Path (Join-Path $dir 'IN-FORM.exe') } 'the installed IN-FORM.exe'
           foreach ($f in 'IN-FORM.exe', 'node.exe', 'server\index.js', 'public\index.html', 'LICENSE') {
             if (-not (Test-Path (Join-Path $dir $f))) { throw "installed folder is missing $f" }
           }
@@ -116,8 +133,8 @@ jobs:
           }
 
           $launcher = Join-Path $dir 'IN-FORM.exe'
-          $p = Start-Process -FilePath $launcher -ArgumentList '--quiet' -Wait -PassThru
-          if ($p.ExitCode -ne 0) { Show-Log; throw "launcher exit code $($p.ExitCode)" }
+          $code = Run-Program $launcher @('--quiet')
+          if ($code -ne 0) { Show-Log; throw "launcher exit code $code" }
 
           try {
             $health = Invoke-WebRequest http://127.0.0.1:3000/api/health -UseBasicParsing
@@ -129,21 +146,21 @@ jobs:
           if ($topics.topics.Count -lt 7) { throw 'topics are missing' }
 
           # Launching again must reuse the running server, not start a second one.
-          $p2 = Start-Process -FilePath $launcher -ArgumentList '--quiet' -Wait -PassThru
-          if ($p2.ExitCode -ne 0) { Show-Log; throw "second launch exit code $($p2.ExitCode)" }
+          $code = Run-Program $launcher @('--quiet')
+          if ($code -ne 0) { Show-Log; throw "second launch exit code $code" }
           $running = @(Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$dir*" })
           if ($running.Count -ne 1) { throw "expected one IN-FORM node process, found $($running.Count)" }
 
-          $s = Start-Process -FilePath $launcher -ArgumentList '--stop', '--quiet' -Wait -PassThru
-          if ($s.ExitCode -ne 0) { Show-Log; throw "stop exit code $($s.ExitCode)" }
+          $code = Run-Program $launcher @('--stop', '--quiet')
+          if ($code -ne 0) { Show-Log; throw "stop exit code $code" }
           Start-Sleep -Seconds 2
           $stillUp = $true
           try { Invoke-WebRequest http://127.0.0.1:3000/api/health -UseBasicParsing -TimeoutSec 3 | Out-Null } catch { $stillUp = $false }
           if ($stillUp) { throw 'IN-FORM still answered after stop' }
 
-          Start-Process -FilePath (Join-Path $dir 'unins000.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait
-          Start-Sleep -Seconds 2
-          if (Test-Path $launcher) { throw 'uninstall left IN-FORM.exe behind' }
+          # The uninstaller hands over to a temporary copy of itself, so wait for the result.
+          Run-Program (Join-Path $dir 'unins000.exe') @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') 120 | Out-Null
+          Wait-For { -not (Test-Path $launcher) } 'the uninstaller to remove IN-FORM.exe'
           Write-Host 'Install, run, stop and uninstall all worked.'
 
       - uses: actions/upload-artifact@v4
@@ -154,6 +171,7 @@ jobs:
   publish:
     needs: [packages, installer]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/download-artifact@v4
         with:
