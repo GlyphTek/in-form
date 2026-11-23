@@ -88,3 +88,10 @@ test("each item's reason sits behind a Why? button, closed by default, and nothi
   assert.match(c, /p\.signal-why\[hidden\]\{ display:none; \}/);
   assert.match(c, /p\.signal-why\{[^}]*font-size:\.85rem/);
 });
+
+test("each item sits in its own softly edged panel, and the arrow never wraps alone", () => {
+  const c = code("public/style.css");
+  assert.match(c, /\.signal-item\{[^}]*border:1px solid rgba\(0,255,136,\.13\)[^}]*border-radius:10px/s);
+  assert.doesNotMatch(c, /\.signal-item \+ \.signal-item\{[^}]*border-top/s, "panels replace the old divider lines");
+  assert.match(code("public/app.js"), /\$\{escapeHtml\(source\)\}\\u00a0↗/);
+});

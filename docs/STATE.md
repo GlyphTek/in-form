@@ -283,3 +283,8 @@ Fly.io (files exist in Dockerfile, fly.toml, deploy.yml, never run). Steps: 1 in
 
 - Each item now has [Useful] [Dismiss] [Why?]. The reason is closed by default and opens below the buttons at 13.6 px (it was about 10 px and always visible). Opening it only shows or hides text on the page: nothing is saved or sent. An open reason stays open when the item is redrawn (Useful), and `aria-expanded`/`aria-controls` are set so screen readers and the keyboard work. The buttons wrap on very narrow screens.
 - Verified in Chromium at 310 and 375 px wide. The "Why" still on the download page (media/still-why.jpg) shows the old always-visible reason lines; retake it from the new layout when the video is remade.
+
+## Item panels (item-panels branch)
+
+- Each item sits in its own softly edged panel (1px green edge at 13% opacity, 10px corners, faint fill), a quieter echo of the card border; it replaces the thin divider lines. The arrow after the source is joined to the last word so it never wraps alone.
+- Open items from the builder's notes: channel mix (Relevant dominates later presses; cue-word lists are short; a measuring script was offered), a clearer line when Local is chosen with topics that have no local version (only News, Sport and Education do). NZ edition confirmed working with News + Oceania.
