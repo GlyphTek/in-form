@@ -278,3 +278,8 @@ Fly.io (files exist in Dockerfile, fly.toml, deploy.yml, never run). Steps: 1 in
 - Version 0.3.0 (package.json and lock), CHANGELOG.md with this version's notes, and the release workflow now publishes the matching CHANGELOG section as the release notes (a test fails if the package version has no section).
 - Correction to an earlier note: copies older than 0.3.0 do not contain the update check, so v0.2.0 will NOT show a notice for 0.3.0. The first real test of the notice is a 0.3.0 copy seeing a later release.
 - Updating over an old install uses the same AppId, so it should upgrade in place; if IN-FORM is running its files may be locked, so stop it first. The CI install test covers a fresh install only; an upgrade-over-old test is not written.
+
+## Why? button (why-dropdown branch)
+
+- Each item now has [Useful] [Dismiss] [Why?]. The reason is closed by default and opens below the buttons at 13.6 px (it was about 10 px and always visible). Opening it only shows or hides text on the page: nothing is saved or sent. An open reason stays open when the item is redrawn (Useful), and `aria-expanded`/`aria-controls` are set so screen readers and the keyboard work. The buttons wrap on very narrow screens.
+- Verified in Chromium at 310 and 375 px wide. The "Why" still on the download page (media/still-why.jpg) shows the old always-visible reason lines; retake it from the new layout when the video is remade.

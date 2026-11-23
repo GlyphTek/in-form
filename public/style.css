@@ -1054,6 +1054,7 @@ button[type="button"]:hover{
 /* Signal actions */
 .signal-actions{
     display:flex;
+    flex-wrap:wrap;
     gap:8px;
     margin-top:8px;
 }
@@ -1061,6 +1062,12 @@ button[type="button"]:hover{
 .signal-btn{
     font-size:.65rem;
     padding:4px 10px;
+}
+
+.signal-btn[aria-expanded="true"]{
+    color:var(--secondary);
+    border-color:rgba(0,212,255,.4);
+    background:rgba(0,212,255,.08);
 }
 
 .signal-btn[aria-pressed="true"]{
@@ -1107,12 +1114,18 @@ button[type="button"]:hover{
     text-underline-offset:3px;
 }
 
+/* The reason is tucked behind the Why? button so the headline stays the focus. */
 .content p.signal-why{
-    margin-top:2px;
-    font-size:.65rem;
-    line-height:1.5;
-    color:#8a8a8a;
+    margin:12px 0 0;
+    padding:10px 12px;
+    font-size:.85rem;
+    line-height:1.55;
+    color:#c4c4c4;
+    background:rgba(0,212,255,.05);
+    border-left:2px solid rgba(0,212,255,.35);
+    border-radius:0 6px 6px 0;
 }
+.content p.signal-why[hidden]{ display:none; }
 
 .setup-unsaved{
     margin-top:10px;

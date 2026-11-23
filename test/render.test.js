@@ -75,3 +75,16 @@ test("the known limits say plainly that it is built for $0 on free tiers", () =>
     assert.match(t, /no paid cloud AI/);
   }
 });
+
+test("each item's reason sits behind a Why? button, closed by default, and nothing is saved by opening it", () => {
+  const a = code("public/app.js");
+  assert.match(a, /data-action="why" aria-expanded=/);
+  assert.match(a, /aria-controls="why-/);
+  assert.match(a, /class="signal-why" id="why-/);
+  assert.match(a, /const whyOpen = new Set\(\)/, "an open reason survives the item being redrawn");
+  const at = a.indexOf('if (action === "why")');
+  assert.ok(at > 0 && at < a.indexOf("saveSignalState(id", at), "the Why? branch returns before anything is saved");
+  const c = code("public/style.css");
+  assert.match(c, /p\.signal-why\[hidden\]\{ display:none; \}/);
+  assert.match(c, /p\.signal-why\{[^}]*font-size:\.85rem/);
+});
