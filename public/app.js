@@ -1082,7 +1082,7 @@ function renderSignalHtml(signal) {
     return `<div class="signal-item" data-signal-id="${id}">` +
         `<p class="signal-title">${escapeHtml(headline)}</p>` +
         `<p class="signal-source"><a href="${escapeHtml(safeUrl(signal.link))}" target="_blank" rel="noopener noreferrer" ` +
-        `data-signal-link aria-label="Open the article from ${escapeHtml(source)}">${escapeHtml(source)} ↗</a></p>` +
+        `data-signal-link aria-label="Open the article from ${escapeHtml(source)}">${escapeHtml(source)}\u00a0↗</a></p>` +
         `<div class="signal-actions">` +
         `<button type="button" class="signal-btn" data-action="useful" aria-pressed="${signal.useful ? "true" : "false"}">` +
         `${signal.useful ? "Useful ✓" : "Useful"}</button>` +

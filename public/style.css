@@ -390,10 +390,16 @@ details[open].card{
     font-size:.8rem;
 }
 
+/* Each item sits in its own softly edged panel, a quieter echo of the card border. */
+.signal-item{
+    padding:14px 12px 12px;
+    background:rgba(255,255,255,.025);
+    border:1px solid rgba(0,255,136,.13);
+    border-radius:10px;
+}
+
 .signal-item + .signal-item{
-    margin-top:14px;
-    padding-top:14px;
-    border-top:1px solid rgba(255,255,255,.05);
+    margin-top:12px;
 }
 
 /* CONTEXT */
