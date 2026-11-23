@@ -1071,19 +1071,26 @@ function splitHeadline(signal) {
     return { headline: title, source: host || "Open link" };
 }
 
+// Items whose "Why?" is open stay open when the item is redrawn (marking it Useful, say).
+const whyOpen = new Set();
+
 function renderSignalHtml(signal) {
     signalsOnScreen.set(signal.id, signal);
     const { headline, source } = splitHeadline(signal);
-    return `<div class="signal-item" data-signal-id="${Number(signal.id)}">` +
+    const id = Number(signal.id);
+    const open = whyOpen.has(id);
+    return `<div class="signal-item" data-signal-id="${id}">` +
         `<p class="signal-title">${escapeHtml(headline)}</p>` +
         `<p class="signal-source"><a href="${escapeHtml(safeUrl(signal.link))}" target="_blank" rel="noopener noreferrer" ` +
         `data-signal-link aria-label="Open the article from ${escapeHtml(source)}">${escapeHtml(source)} ↗</a></p>` +
-        (signal.reason ? `<p class="signal-why">Why: ${escapeHtml(signal.reason)}</p>` : "") +
         `<div class="signal-actions">` +
         `<button type="button" class="signal-btn" data-action="useful" aria-pressed="${signal.useful ? "true" : "false"}">` +
         `${signal.useful ? "Useful ✓" : "Useful"}</button>` +
         `<button type="button" class="signal-btn" data-action="dismiss">Dismiss</button>` +
-        `</div></div>`;
+        (signal.reason ? `<button type="button" class="signal-btn" data-action="why" aria-expanded="${open}" aria-controls="why-${id}">Why?</button>` : "") +
+        `</div>` +
+        (signal.reason ? `<p class="signal-why" id="why-${id}"${open ? "" : " hidden"}>${escapeHtml(signal.reason)}</p>` : "") +
+        `</div>`;
 }
 
 function renderDismissedHtml(id) {
@@ -1398,6 +1405,16 @@ async function handleSignalAction(button) {
     const signal = signalsOnScreen.get(id);
     if (!signal) return;
     const action = button.dataset.action;
+    if (action === "why") {
+        // Only shows or hides the reason on this page: nothing is saved or sent.
+        const box = document.getElementById(`why-${id}`);
+        if (!box) return;
+        const open = box.hidden;
+        box.hidden = !open;
+        button.setAttribute("aria-expanded", String(open));
+        if (open) whyOpen.add(id); else whyOpen.delete(id);
+        return;
+    }
     button.disabled = true;
 
     try {
