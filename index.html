@@ -87,6 +87,11 @@ h1 {
 }
 
 .btn.primary { background: var(--accent); color: #031a0e; }
+
+/* Desktop only: buttons at 80% of their size (phones keep the full-width tap targets) */
+@media (min-width: 641px) {
+    .btn { padding: 11px 18px; font-size: .68rem; }
+}
 .btn:hover, .btn:focus-visible { box-shadow: 0 0 16px rgba(0, 255, 136, .45); outline: none; }
 .btn.primary:hover { background: #4dffb0; }
 
