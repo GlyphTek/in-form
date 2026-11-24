@@ -299,3 +299,11 @@ Fly.io (files exist in Dockerfile, fly.toml, deploy.yml, never run). Steps: 1 in
   note above about the old always-visible reason lines and the old "Select a new platform" caption.
 - Page: aspect ratio 324/720, "46-second" in the video label, Why? alt text and caption reworded.
 - Real pixel size is only about 1.5x the old one; a full-resolution phone recording would be sharper.
+
+## Link-preview card
+
+- `index.html` head: Open Graph and X (twitter) tags with an absolute image,
+  `media/og-card.jpg` (1200x630, about 70 KB, built from the real app screenshot, no mock content).
+- A test checks the tags exist, the image is on the project's own page, exists, is under 300 KB and is 1200x630.
+- Platforms cache previews: after the page is live, run the link through the LinkedIn Post Inspector and the
+  Facebook Sharing Debugger to refresh it (X has no public checker; post it and look).
