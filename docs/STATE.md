@@ -293,7 +293,7 @@ Fly.io (files exist in Dockerfile, fly.toml, deploy.yml, never run). Steps: 1 in
 
 - `media/inform-showcase.mp4` replaced with the builder's new cut: 46 seconds, current layout (panels, Why? buttons),
   no blue tint, ends on DONE and "Inform your mind with IN-FORM". The export had black bars at the sides, so it was
-  cropped to the app itself (324x720), audio dropped (it was silent), about 1.5 MB (was 4.9 MB).
+  cropped to the app itself (324x720), audio kept, about 2 MB (was 4.9 MB).
 - Poster and the setup, cards and DONE stills retaken from the new cut (captions cropped off). The Why? still comes
   from the builder's earlier recording (open reason line) because the new cut never opens one. This closes the
   note above about the old always-visible reason lines and the old "Select a new platform" caption.
