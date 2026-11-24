@@ -88,3 +88,17 @@ test("the download page's showcase only uses media that is in the repo and small
   assert.match(html, /<video [^>]*controls/, "the video has controls");
   assert.doesNotMatch(html, /<video [^>]*autoplay/, "no autoplay");
 });
+
+test("the download page has link-preview tags with an absolute image that exists and is the right size", () => {
+  const html = read("index.html");
+  const meta = (prop) => (html.match(new RegExp(`<meta (?:property|name)="${prop}" content="([^"]+)"`)) || [])[1];
+  for (const k of ["og:title", "og:description", "og:url", "og:image", "og:image:alt", "twitter:card", "twitter:image"]) assert.ok(meta(k), `${k} is missing`);
+  assert.equal(meta("twitter:card"), "summary_large_image");
+  assert.match(meta("og:image"), /^https:\/\/glyphtek\.github\.io\/in-form\/media\/[^/]+\.jpg$/, "absolute https image on the project's own page");
+  const file = path.join(root, "media", path.basename(meta("og:image")));
+  assert.ok(fs.existsSync(file), "the share image is in the repo");
+  assert.ok(fs.statSync(file).size < 300 * 1024, "keep the share image under 300 KB");
+  const b = fs.readFileSync(file);
+  assert.equal(b.readUInt16BE(b.indexOf(Buffer.from([0xff, 0xc0])) + 7), 1200, "1200 wide");
+  assert.equal(b.readUInt16BE(b.indexOf(Buffer.from([0xff, 0xc0])) + 5), 630, "630 high");
+});
